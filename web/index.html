@@ -362,7 +362,18 @@ function updateProg(){const t=byId(player.id); if(!t) return; document.getElemen
   document.querySelectorAll("#r-text p").forEach(p=>p.classList.toggle("speaking",player.playing&&openId===player.id&&+p.dataset.i===player.i));}
 function setIcon(){document.getElementById("p-icon").innerHTML=player.playing?'<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>':'<path d="M7 4v16l13-8z"/>';document.getElementById("p-play").setAttribute("aria-label",player.playing?"Pause":"Play")}
 let VOICE=null;
-function scoreVoice(v){const n=v.name.toLowerCase();let sc=0;if(/premium/.test(n))sc+=100;if(/enhanced|natural|neural/.test(n))sc+=90;if(/google uk english|google us english/.test(n))sc+=60;if(/siri/.test(n))sc+=70;if(/^(ava|zoe|serena|daniel|karen|moira|evan|nathan|jamie|isha|rishi)\b/.test(n))sc+=30;if(/en[-_]gb/i.test(v.lang))sc+=5;if(/en[-_]in/i.test(v.lang))sc+=4;if(/compact|novelty|bells|bad news|whisper|zarvox|trinoids|albert|bubbles|cellos|jester|organ|superstar|wobble|boing|bahh|grandpa|grandma|rocko|shelley|flo|eddy|reed|sandy/.test(n))sc-=200;return sc}
+function scoreVoice(v){
+  const n=v.name.toLowerCase();let sc=0;
+  if(/premium|natural|neural|wavenet|online/.test(n))sc+=120;
+  if(/enhanced/.test(n))sc+=100;
+  if(/siri/.test(n))sc+=80;
+  if(/google uk english|google us english/.test(n))sc+=60;
+  if(/^(ava|zoe|serena|daniel|karen|moira|evan|nathan|jamie|isha|rishi)\b/.test(n))sc+=30;
+  if(v.lang.toLowerCase()===(navigator.language||'').toLowerCase())sc+=8;
+  if(v.default)sc+=2;
+  if(/compact|novelty|bells|bad news|whisper|zarvox|trinoids|albert|bubbles|cellos|jester|organ|superstar|wobble|boing|bahh|grandpa|grandma|rocko|shelley|flo|eddy|reed|sandy/.test(n))sc-=300;
+  return sc;
+}
 function loadVoices(){
   if(!synth) return; const sel=document.getElementById("p-voice");
   const vs=synth.getVoices().filter(v=>/^en/i.test(v.lang)).sort((a,b)=>scoreVoice(b)-scoreVoice(a));
@@ -375,14 +386,26 @@ function speak(){
   const t=byId(player.id); if(!t||!synth) return;
   if(player.i>=t.paras.length){stop();return}
   const token=++player.token; synth.cancel();
-  const text=t.paras[player.i].replace(/\n/g," ").replace(/\s+/g," ").trim();
-  const parts=text.match(/[^.!?;:]+[.!?;:”’"]*\s*/g)||[text];
-  parts.forEach((sent,k)=>{
-    const u=new SpeechSynthesisUtterance(sent.trim()); u.rate=.86; u.pitch=1; if(VOICE) u.voice=VOICE;
-    if(k===parts.length-1) u.onend=()=>{ if(!player.playing||token!==player.token) return;
-      setTimeout(()=>{ if(!player.playing||token!==player.token) return; player.i++; updateProg(); speak(); },700) };
-    synth.speak(u);
-  });
+  // A complete paragraph gives the voice context for phrasing and intonation.
+  // Splitting at every colon or sentence repeatedly reset its delivery.
+  const text=t.paras[player.i].replace(/\s+/g," ").trim();
+  const u=new SpeechSynthesisUtterance(text);
+  u.rate=.95; u.pitch=1; u.lang=VOICE?.lang||'en-US';
+  if(VOICE)u.voice=VOICE;
+  player.utterance=u;
+  u.onend=()=>{
+    if(!player.playing||token!==player.token)return;
+    setTimeout(()=>{
+      if(!player.playing||token!==player.token)return;
+      player.i++;updateProg();speak();
+    },300);
+  };
+  u.onerror=e=>{
+    if(token!==player.token||!player.playing||e.error==='canceled'||e.error==='interrupted')return;
+    pause();
+    document.getElementById('p-author').textContent='Voice unavailable. Choose another voice and press play.';
+  };
+  synth.speak(u);
   updateProg();
   const p=document.querySelector(`#r-text p[data-i="${player.i}"]`); if(p&&openId===player.id) p.scrollIntoView({block:"center",behavior:"smooth"});
 }
