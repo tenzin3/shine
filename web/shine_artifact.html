@@ -124,21 +124,21 @@ h1.coll{font-weight:600;font-size:clamp(1.6rem,3vw,2.2rem);margin:0 0 8px;text-w
 .player .hint{color:var(--soft);font-size:.85rem}
 
 @media (max-width:900px){
-  .app{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto}
-  .rail{grid-row:1/2;flex-direction:column;overflow:visible;padding:10px 0 8px;padding-top:max(10px,env(safe-area-inset-top,0px));gap:8px;min-width:0}
-  .logo{font-size:1.9rem;margin:0 20px;align-self:flex-start}
+  .app{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto auto}
+  .rail{grid-row:3/4;flex-direction:column;overflow:visible;padding:6px 0 calc(6px + env(safe-area-inset-bottom,0px));gap:0;min-width:0;z-index:30;border-top:1px solid var(--faint)}
+  .rail .logo{display:none}
   .logo svg{width:24px;height:24px}
   .nav-links{display:flex;gap:8px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;padding:4px max(16px,env(safe-area-inset-right,0px)) 4px max(16px,env(safe-area-inset-left,0px))}
   .nav-links::-webkit-scrollbar{display:none}
   .nav-item{flex-direction:column;gap:4px;font-size:.72rem;padding:2px;text-align:center;flex:none;width:76px;line-height:1.2}
   .ring{width:46px;height:46px}.ring svg{width:20px;height:20px}
   .rail .legal{display:none}
-  .content{grid-row:2/3;overscroll-behavior-y:contain}
-  .top{padding-block:12px}
+  .content{grid-row:1/2;overscroll-behavior-y:contain}
+  .top{padding-block:max(12px,env(safe-area-inset-top,0px)) 12px}
   .searchbox{flex:1;height:46px;padding-inline:14px}
   .round{flex:none;width:46px;height:46px}
   .pill-btn{display:none}
-  .player{grid-row:3/4;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;padding-block:8px calc(8px + env(safe-area-inset-bottom,0px))}
+  .player{grid-row:2/3;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;padding-block:8px}
   .player .controls{grid-column:1/-1;grid-row:2}
   .extras{grid-column:2;grid-row:1}
   .voice span{display:none}
@@ -155,7 +155,7 @@ h1.coll{font-weight:600;font-size:clamp(1.6rem,3vw,2.2rem);margin:0 0 8px;text-w
   .row-head button{min-height:44px;padding:8px 0 8px 12px;white-space:nowrap}
   .card{padding:0;align-content:start}
   .read-hero{grid-template-columns:110px 1fr;gap:18px}
-  .reader{position:fixed;bottom:var(--player-h,0px)}
+  .reader{position:fixed;bottom:calc(var(--player-h,0px) + var(--nav-h,0px))}
 }
 @media (max-width:600px){
   .inner,.top{padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px))}
@@ -409,8 +409,12 @@ document.getElementById("r-copy").onclick=async e=>{const el=document.getElement
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!document.getElementById("reader").hidden)closeReader()});
 function route(){const h=location.hash.slice(1); if(byId(h)){if(!SHELVES.some(s=>s.id===current))go(current); openReader(h,false)} else {document.getElementById("reader").hidden=true; openId=null; go(SHELVES.some(s=>s.id===h)||h==="saved"?h:"home")}}
 window.addEventListener("hashchange",route);
-const setPH=()=>document.documentElement.style.setProperty("--player-h",document.getElementById("player").offsetHeight+"px"); window.addEventListener("resize",setPH);
-if(window.ResizeObserver)new ResizeObserver(setPH).observe(document.getElementById("player"));
+const setPH=()=>{
+  document.documentElement.style.setProperty("--player-h",document.getElementById("player").offsetHeight+"px");
+  document.documentElement.style.setProperty("--nav-h",document.getElementById("rail").offsetHeight+"px");
+};
+window.addEventListener("resize",setPH);
+if(window.ResizeObserver){const layoutObserver=new ResizeObserver(setPH);layoutObserver.observe(document.getElementById("player"));layoutObserver.observe(document.getElementById("rail"));}
 if(synth){loadVoices(); synth.onvoiceschanged=loadVoices;}
 document.getElementById("p-voice").onchange=e=>{VOICE=synth.getVoices().find(v=>v.name===e.target.value)||VOICE; store.set("shine-voice",VOICE&&VOICE.name); if(player.playing) speak()};
 document.getElementById("p-disc").innerHTML=pic(today(),200);
