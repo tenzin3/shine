@@ -1,0 +1,230 @@
+<title>Shine</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Spectral:ital,wght@0,400;0,500;1,400&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: night-sky streaming shelf — one hero teaching, then a horizontal shelf per life difficulty; tap a card to open a quiet reader. */
+:root{
+  --night:#0d1120; --panel:#161b2d; --panel-2:#1f2540; --line:#2a3152;
+  --ink:#ede6d6; --muted:#9da3b8; --saffron:#e8a23a; --saffron-ink:#1a1206;
+  --display:"Marcellus", "Iowan Old Style", Georgia, serif;
+  --read:"Spectral", Georgia, "Times New Roman", serif;
+  --ui:"Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{background:var(--night);color:var(--ink)}
+body{font-family:var(--ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--night)}
+a{color:var(--saffron)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--saffron);outline-offset:3px;border-radius:6px}
+.gutter{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+@media (min-width:900px){.gutter{padding-left:max(48px,env(safe-area-inset-left,0px));padding-right:max(48px,env(safe-area-inset-right,0px))}}
+
+/* header */
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:linear-gradient(var(--night) 60%,transparent)}
+.bar{display:flex;align-items:center;gap:16px;padding-block:14px}
+.logo{font-family:var(--display);font-size:1.6rem;letter-spacing:.06em;color:var(--saffron);display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo svg{width:26px;height:26px}
+.search{margin-left:auto;display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 14px;min-width:0;flex:0 1 280px}
+.search input{background:none;border:0;color:var(--ink);font:inherit;width:100%;min-width:0;outline:none}
+.search input::placeholder{color:var(--muted)}
+
+/* hero */
+.hero{position:relative;padding-block:28px 40px;overflow:hidden}
+.hero-art{position:absolute;inset:0;z-index:0;opacity:.55}
+.hero-art svg{width:100%;height:100%}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,var(--night) 25%,rgba(13,17,32,.55) 65%,rgba(13,17,32,.2)),linear-gradient(0deg,var(--night),transparent 40%);z-index:0}
+.hero-inner{position:relative;z-index:1;max-width:620px;display:grid;gap:14px}
+.eyebrow{font-size:.72rem;text-transform:uppercase;letter-spacing:.18em;color:var(--saffron);font-weight:700}
+.hero h1{font-family:var(--display);font-weight:400;font-size:clamp(2rem,5vw,3.4rem);line-height:1.08;margin:0;text-wrap:balance}
+.hero .by{color:var(--muted);font-size:.95rem}
+.hero blockquote{margin:0;font-family:var(--read);font-style:italic;font-size:1.12rem;line-height:1.6;color:#d8d1c1;border-left:2px solid var(--saffron);padding-left:16px;max-width:52ch}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.btn{border:0;border-radius:8px;padding:11px 20px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.btn.primary{background:var(--saffron);color:var(--saffron-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{background:rgba(237,230,214,.12);color:var(--ink)}
+.btn.ghost:hover{background:rgba(237,230,214,.2)}
+
+/* shelves */
+main{display:grid;gap:34px;padding-bottom:56px}
+.shelf h2{font-family:var(--display);font-weight:400;font-size:1.45rem;margin:0}
+.shelf-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.shelf-head p{margin:0;color:var(--muted);font-size:.9rem}
+.track-wrap{position:relative}
+.track{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(220px,260px);gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding-bottom:6px}
+.track::-webkit-scrollbar{display:none}
+.nav{position:absolute;top:0;bottom:6px;width:44px;border:0;background:rgba(13,17,32,.75);color:var(--ink);font-size:1.6rem;cursor:pointer;display:none;z-index:2}
+.nav.l{left:0;border-radius:0 10px 10px 0}.nav.r{right:0;border-radius:10px 0 0 10px}
+@media (hover:hover) and (min-width:700px){.track-wrap:hover .nav{display:block}}
+
+/* card */
+.card{scroll-snap-align:start;background:var(--panel);border-radius:10px;overflow:hidden;cursor:pointer;border:1px solid transparent;text-align:left;padding:0;display:grid;grid-template-rows:auto 1fr;transition:transform .18s ease,border-color .18s}
+.card:hover{transform:translateY(-4px) scale(1.02);border-color:var(--saffron)}
+.art{aspect-ratio:16/9;max-width:100%;position:relative}
+.art svg{display:block;width:100%;height:100%}
+.art .mins{position:absolute;right:8px;bottom:8px;background:rgba(13,17,32,.8);border-radius:4px;padding:2px 7px;font-size:.72rem;font-weight:600;font-variant-numeric:tabular-nums}
+.meta{padding:12px 14px 14px;display:grid;gap:4px;min-width:0}
+.meta h3{margin:0;font-family:var(--display);font-weight:400;font-size:1.08rem;line-height:1.25}
+.meta span{color:var(--muted);font-size:.82rem}
+.empty{color:var(--muted);padding-block:20px}
+
+/* reader */
+.reader{position:fixed;inset:0;z-index:40;background:var(--night);overflow-y:auto;overscroll-behavior:contain}
+.reader-top{position:sticky;top:0;z-index:2;background:var(--night);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
+.reader-top .bar{gap:12px}
+.reader-top .crumb{color:var(--muted);font-size:.85rem;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.close{margin-left:auto;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:7px 16px;cursor:pointer;font-weight:600}
+article{max-width:65ch;margin:0 auto;padding-block:36px 64px}
+article .eyebrow{display:block;margin-bottom:10px}
+article h1{font-family:var(--display);font-weight:400;font-size:clamp(1.8rem,4vw,2.6rem);line-height:1.12;margin:0 0 6px;text-wrap:balance}
+article .by{color:var(--muted);margin:0 0 28px}
+.text{font-family:var(--read);font-size:1.14rem;line-height:1.75;color:#e6dfcf}
+.text p{margin:0 0 .9em}
+.source{margin-top:40px;border-top:1px solid var(--line);padding-top:20px;display:grid;gap:8px;font-size:.88rem;color:var(--muted)}
+.source strong{color:var(--ink);font-weight:600}
+.source .cite{background:var(--panel);border-radius:8px;padding:12px 14px;font-family:var(--read);font-size:.95rem;color:var(--ink);word-break:break-word}
+.copy{justify-self:start;background:none;border:1px solid var(--line);border-radius:6px;padding:6px 12px;cursor:pointer;color:var(--muted)}
+.copy:hover{color:var(--ink);border-color:var(--muted)}
+.next{margin-top:28px}
+
+footer{color:var(--muted);font-size:.8rem;padding-block:24px 40px;border-top:1px solid var(--line)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+@media (max-width:520px){.track{grid-auto-columns:minmax(200px,72%)}.search{flex-basis:180px}}
+</style>
+
+<header class="gutter">
+  <div class="bar">
+    <a class="logo" href="#" id="home-link" aria-label="Shine home">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4c3 5 6 8 6 13a6 6 0 0 1-12 0c0-5 3-8 6-13z" fill="#e8a23a"/><path d="M8 25h16l-2 4H10z" fill="#9da3b8"/></svg>
+      Shine
+    </a>
+    <label class="search" for="q">
+      <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="#9da3b8" stroke-width="2"/><path d="m20 20-4-4" stroke="#9da3b8" stroke-width="2" stroke-linecap="round"/></svg>
+      <input id="q" type="search" placeholder="Search teachings or masters" autocomplete="off">
+    </label>
+  </div>
+</header>
+
+<section class="hero gutter" id="hero"></section>
+<main class="gutter" id="shelves"></main>
+
+<footer class="gutter">
+  Texts from <a href="https://www.lotsawahouse.org" target="_blank" rel="noopener">Lotsawa House</a>, used under
+  <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener">CC BY-NC 4.0</a>.
+  Each teaching credits its author and translator. Shine offers Buddhist practice and reflection; it is not medical or mental-health advice.
+</footer>
+
+<div class="reader" id="reader" hidden role="dialog" aria-modal="true" aria-labelledby="r-title">
+  <div class="reader-top"><div class="bar gutter">
+    <span class="crumb" id="r-crumb"></span>
+    <button class="close" id="r-close">Close</button>
+  </div></div>
+  <article class="gutter">
+    <span class="eyebrow" id="r-shelf"></span>
+    <h1 id="r-title"></h1>
+    <p class="by" id="r-by"></p>
+    <div class="text" id="r-text"></div>
+    <div class="source">
+      <strong>Source</strong>
+      <div class="cite" id="r-cite"></div>
+      <button class="copy" id="r-copy">Copy citation</button>
+    </div>
+    <div class="next" id="r-next"></div>
+  </article>
+</div>
+
+<script>
+const TEXTS = /*__DATA__*/[];
+const SHELVES = [
+  {id:"beginners", name:"Start here", line:"Simple first steps into meditation", hue:[38,72]},
+  {id:"hard-times-suffering", name:"When life is hard", line:"Bringing pain, sickness and setbacks onto the path", hue:[350,40]},
+  {id:"focus-restless-mind", name:"A restless mind", line:"Calm abiding, mindfulness and concentration", hue:[210,55]},
+  {id:"anger-difficult-people", name:"Anger and difficult people", line:"Mind training for the people who test us", hue:[12,62]},
+  {id:"compassion-kindness", name:"Opening the heart", line:"Love, compassion and bodhicitta", hue:[28,70]},
+  {id:"change-loss-impermanence", name:"Everything changes", line:"Reflections on impermanence", hue:[265,35]},
+  {id:"grief-death", name:"Grief and death", line:"Preparing for death and the bardos", hue:[225,30]},
+  {id:"family-friends", name:"Family and friends", line:"Parents, companions and the people we keep close", hue:[160,35]},
+  {id:"simplicity-what-matters", name:"What really matters", line:"Heart advice on a simple, meaningful life", hue:[45,45]},
+];
+const shelfOf = id => SHELVES.find(s=>s.id===id);
+const byId = id => TEXTS.find(t=>t.id===id);
+
+function seed(str){let h=2166136261;for(const c of str){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return ()=>{h^=h<<13;h^=h>>>17;h^=h<<5;return ((h>>>0)%1000)/1000}}
+function art(t, w=320, h=180){
+  const s=shelfOf(t.playlist)||SHELVES[0]; const r=seed(t.id+t.title); const [hue,sat]=s.hue;
+  const sky1=`hsl(${hue} ${sat}% 18%)`, sky2=`hsl(${(hue+25)%360} ${sat}% 34%)`;
+  const sunX=w*(.2+r()*.6), sunY=h*(.22+r()*.2), sunR=12+r()*16;
+  const ridge=(base,amp,col)=>{let d=`M0 ${h}`;const n=6+Math.floor(r()*4);for(let i=0;i<=n;i++){const x=w*i/n;const y=base-amp*r();d+=` L${x.toFixed(1)} ${y.toFixed(1)}`}return `<path d="${d} L${w} ${h} Z" fill="${col}"/>`};
+  const flags = r()>.45 ? (()=>{const cols=["#2f6bd1","#f2efe6","#c8362f","#2e8b57","#e8b23a"];let g=`<path d="M${w*.05} ${h*.18} Q ${w*.5} ${h*.34} ${w*.95} ${h*.16}" stroke="rgba(237,230,214,.35)" fill="none"/>`;for(let i=0;i<10;i++){const x=w*.08+i*w*.085;const y=h*.18+Math.sin(i/9*Math.PI)*h*.13;g+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(w*.05).toFixed(1)}" height="${(h*.09).toFixed(1)}" fill="${cols[i%5]}" opacity=".8"/>`}return g})() : "";
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="g${t.id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky1}"/><stop offset="1" stop-color="${sky2}"/></linearGradient></defs><rect width="${w}" height="${h}" fill="url(#g${t.id})"/><circle cx="${sunX}" cy="${sunY}" r="${sunR}" fill="#e8a23a" opacity=".85"/>${flags}${ridge(h*.72,h*.32,`hsl(${hue} ${sat}% 12% / .9)`)}${ridge(h*.9,h*.2,"#0d1120")}</svg>`;
+}
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const cite = t => `"${t.title}" by ${t.author}. ${t.credit} Lotsawa House, CC BY-NC 4.0. ${t.url}`;
+
+function card(t){
+  return `<button class="card" data-id="${t.id}"><div class="art">${art(t)}<span class="mins">${t.minutes} min</span></div><div class="meta"><h3>${esc(t.title)}</h3><span>${esc(t.author)}</span></div></button>`;
+}
+function shelf(title, line, list, id){
+  return `<section class="shelf" aria-labelledby="h-${id}"><div class="shelf-head"><h2 id="h-${id}">${esc(title)}</h2><p>${esc(line)}</p></div><div class="track-wrap"><button class="nav l" data-dir="-1" aria-label="Scroll left">‹</button><div class="track">${list.map(card).join("")}</div><button class="nav r" data-dir="1" aria-label="Scroll right">›</button></div></section>`;
+}
+function renderShelves(q=""){
+  const el=document.getElementById("shelves"); q=q.trim().toLowerCase();
+  if(q){
+    const hits=TEXTS.filter(t=>(t.title+" "+t.author+" "+t.paras.join(" ")).toLowerCase().includes(q));
+    el.innerHTML = hits.length ? shelf(`Results for “${q}”`, `${hits.length} teaching${hits.length>1?"s":""}`, hits, "results") : `<p class="empty">No teachings match “${esc(q)}”. Try a feeling like “anger”, or a master like “Patrul”.</p>`;
+    return;
+  }
+  let html="";
+  let recent=[]; try{recent=JSON.parse(localStorage.getItem("shine-recent")||"[]")}catch(e){}
+  recent=recent.map(byId).filter(Boolean);
+  if(recent.length) html+=shelf("Continue reading","Teachings you opened recently",recent,"recent");
+  for(const s of SHELVES){const list=TEXTS.filter(t=>t.playlist===s.id); if(list.length) html+=shelf(s.name,s.line,list,s.id)}
+  el.innerHTML=html;
+}
+function renderHero(){
+  const day=Math.floor(Date.now()/864e5); const pool=TEXTS.filter(t=>t.minutes<=6); const t=pool[day%pool.length];
+  const first=t.paras.find(p=>p.length>60)||t.paras[0]; const lines=first.length>240?first.slice(0,240).replace(/\s\S*$/,"")+"…":first;
+  document.getElementById("hero").innerHTML=`<div class="hero-art">${art(t,1200,500)}</div><div class="hero-inner"><span class="eyebrow">Today’s teaching · ${esc(shelfOf(t.playlist).name)}</span><h1>${esc(t.title)}</h1><span class="by">${esc(t.author)} · ${t.minutes} min read</span><blockquote>${esc(lines)}</blockquote><div class="actions"><button class="btn primary" data-id="${t.id}">▶ Read now</button><a class="btn ghost" href="#shelves-anchor" id="browse">Browse all</a></div></div>`;
+}
+function openReader(id, push=true){
+  const t=byId(id); if(!t) return;
+  const s=shelfOf(t.playlist);
+  document.getElementById("r-crumb").textContent=`${s.name} · ${t.minutes} min`;
+  document.getElementById("r-shelf").textContent=s.name;
+  document.getElementById("r-title").textContent=t.title;
+  document.getElementById("r-by").textContent=`by ${t.author}`;
+  document.getElementById("r-text").innerHTML=t.paras.map(p=>`<p>${esc(p).replace(/\n/g,"<br>")}</p>`).join("");
+  document.getElementById("r-cite").innerHTML=`“${esc(t.title)}” by ${esc(t.author)}. ${esc(t.credit)} <a href="${t.url}" target="_blank" rel="noopener">Lotsawa House</a>, CC BY-NC 4.0. <br><span style="color:var(--muted);font-size:.85rem">Version ${esc(t.version)} · retrieved ${esc(t.retrieved)} · ${t.id}</span>`;
+  const more=TEXTS.filter(x=>x.playlist===t.playlist&&x.id!==t.id).slice(0,1)[0];
+  document.getElementById("r-next").innerHTML= more ? `<button class="btn ghost" data-id="${more.id}">Next in ${esc(s.name)}: ${esc(more.title)} →</button>` : "";
+  const r=document.getElementById("reader"); r.hidden=false; r.scrollTop=0; document.body.style.overflow="hidden";
+  document.getElementById("r-close").focus();
+  try{let rec=JSON.parse(localStorage.getItem("shine-recent")||"[]").filter(x=>x!==id);rec.unshift(id);localStorage.setItem("shine-recent",JSON.stringify(rec.slice(0,8)))}catch(e){}
+  if(push && location.hash!=="#"+id) location.hash=id;
+}
+function closeReader(){
+  document.getElementById("reader").hidden=true; document.body.style.overflow="";
+  if(location.hash) history.replaceState(null,"",location.pathname+location.search);
+  renderShelves(document.getElementById("q").value);
+}
+document.addEventListener("click",e=>{
+  const nav=e.target.closest(".nav"); if(nav){const tr=nav.parentElement.querySelector(".track");tr.scrollBy({left:nav.dataset.dir*tr.clientWidth*.85,behavior:"smooth"});return}
+  const b=e.target.closest("[data-id]"); if(b){openReader(b.dataset.id);return}
+  if(e.target.id==="browse"){e.preventDefault();document.getElementById("shelves").scrollIntoView({behavior:"smooth"})}
+  if(e.target.closest("#home-link")){e.preventDefault();closeReader();window.scrollTo({top:0})}
+});
+document.getElementById("r-close").onclick=closeReader;
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!document.getElementById("reader").hidden)closeReader()});
+document.getElementById("q").addEventListener("input",e=>renderShelves(e.target.value));
+document.getElementById("r-copy").onclick=async e=>{
+  const t=byId(location.hash.slice(1))||byId(document.querySelector("#r-next [data-id]")?.dataset.id); const txt=document.getElementById("r-cite").innerText;
+  try{await navigator.clipboard.writeText(txt);e.target.textContent="Copied"}catch(err){const r=document.createRange();r.selectNodeContents(document.getElementById("r-cite"));const s=getSelection();s.removeAllRanges();s.addRange(r);e.target.textContent="Selected — press Ctrl/Cmd+C"}
+  setTimeout(()=>e.target.textContent="Copy citation",2200);
+};
+window.addEventListener("hashchange",()=>{const id=location.hash.slice(1); if(byId(id)) openReader(id,false); else if(!document.getElementById("reader").hidden) closeReader()});
+renderHero(); renderShelves();
+if(byId(location.hash.slice(1))) openReader(location.hash.slice(1),false);
+</script>
