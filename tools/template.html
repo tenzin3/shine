@@ -122,6 +122,17 @@ h1.coll{font-weight:600;font-size:clamp(1.6rem,3vw,2.2rem);margin:0 0 8px;text-w
 .heart svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:1.8}
 .heart[aria-pressed="true"] svg{fill:#ff8fa3;stroke:#ff8fa3}
 .player .hint{color:var(--soft);font-size:.85rem}
+.player{position:relative}
+.btns .music-button{width:44px;height:44px;border-radius:50%;font-size:1.4rem;background:var(--glass)}
+.music-panel{position:absolute;bottom:calc(100% + 8px);right:16px;width:min(320px,calc(100% - 32px));padding:18px;background:#122c55;border:1px solid var(--faint);border-radius:18px;box-shadow:0 8px 30px #07132b80}
+.music-panel h2{font-size:1rem;margin:0 0 6px}
+.music-panel p{color:var(--soft);font-size:.88rem;margin:0 0 12px}
+.music-panel .music-settings{display:flex;align-items:center;gap:12px}
+.music-panel button{min-height:44px;padding:8px 14px;border-radius:999px;background:var(--glass);white-space:nowrap}
+.music-panel button[aria-pressed="true"]{background:#315f89}
+.music-volume{display:grid;gap:2px;font-size:.8rem;flex:1;min-width:0}
+.music-volume input{width:100%;height:30px;margin:0;accent-color:var(--accent)}
+.music-panel .music-close{float:right;width:44px;padding:0;margin:-8px -8px 0 0;font-size:1.3rem}
 
 @media (max-width:900px){
   .app{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto auto}
@@ -214,11 +225,18 @@ h1.coll{font-weight:600;font-size:clamp(1.6rem,3vw,2.2rem);margin:0 0 8px;text-w
         <button class="play" id="p-play" aria-label="Play"><svg viewBox="0 0 24 24" id="p-icon"><path d="M7 4v16l13-8z"/></svg></button>
         <button id="p-fwd" aria-label="Next paragraph"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v4h-4"/></svg></button>
         <button class="stop" id="p-stop" aria-label="Stop"><svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></svg></button>
+        <button class="music-button" id="p-music" aria-label="Background music settings" aria-expanded="false" aria-controls="music-panel">♫</button>
       </div>
       <div class="prog"><span id="p-cur">0:00</span><input id="p-range" type="range" min="0" max="0" value="0" aria-label="Position in teaching"><span id="p-len">0:00</span></div>
     </div>
     <div class="extras"><label class="voice" for="p-voice"><span>Voice</span><select id="p-voice"></select></label>
     <button class="heart" id="p-heart" aria-pressed="false" aria-label="Save to favourites"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-9-9a4.6 4.6 0 0 1 9-2.5A4.6 4.6 0 0 1 21 11c-2 4.6-9 9-9 9z"/></svg></button></div>
+    <section class="music-panel" id="music-panel" hidden aria-labelledby="music-title">
+      <button class="music-close" id="music-close" aria-label="Close music settings">×</button>
+      <h2 id="music-title">Background music</h2>
+      <p id="music-status" aria-live="polite">Soft ambient tones, gently beneath the voice.</p>
+      <div class="music-settings"><button id="music-toggle" aria-pressed="true">Music on</button><label class="music-volume" for="music-volume">Music volume<input id="music-volume" type="range" min="0" max="100" value="25"></label></div>
+    </section>
   </footer>
 </div>
 
@@ -407,13 +425,67 @@ function speak(){
   updateProg();
   const p=document.querySelector(`#r-text p[data-i="${player.i}"]`); if(p&&openId===player.id) p.scrollIntoView({block:"center",behavior:"smooth"});
 }
-function play(){if(!player.id){openReader(today().id);}if(!synth){document.getElementById("p-author").textContent="Read-aloud isn’t available in this browser";return} player.playing=true; setIcon(); speak()}
-function pause(){player.playing=false; player.token++; setIcon(); synth&&synth.cancel(); updateProg()}
-function stop(){player.playing=false; player.token++; player.i=0; setIcon(); synth&&synth.cancel(); updateProg()}
+function play(){if(!player.id){openReader(today().id);}if(!synth){document.getElementById("p-author").textContent="Read-aloud isn’t available in this browser";return} player.playing=true; setIcon(); syncMusic(); speak()}
+function pause(){player.playing=false; player.token++; setIcon(); synth&&synth.cancel(); syncMusic(); updateProg()}
+function stop(){player.playing=false; player.token++; player.i=0; setIcon(); synth&&synth.cancel(); syncMusic(); updateProg()}
 function jump(d){const t=byId(player.id); if(!t)return; player.i=Math.max(0,Math.min(t.paras.length-1,player.i+d)); updateProg(); if(player.playing) speak()}
+
+/* Original ambient soundscape: softly moving consonant tones, no downloads. */
+const music={enabled:store.get('shine-music',true)===true,volume:Math.max(0,Math.min(100,Number(store.get('shine-music-volume',25))||0)),ctx:null,master:null,sleep:null};
+function createMusic(){
+  const Audio=window.AudioContext||window.webkitAudioContext;
+  if(!Audio)throw new Error('Web Audio unavailable');
+  const ctx=new Audio();music.ctx=ctx;
+  const master=ctx.createGain();master.gain.value=0;master.connect(ctx.destination);music.master=master;
+  const filter=ctx.createBiquadFilter();filter.type='lowpass';filter.frequency.value=1100;filter.Q.value=.3;filter.connect(master);
+  // A spacious D major pentatonic pad; very slow independent swells avoid a hard loop.
+  [146.832,220,293.665,369.994,440,493.883].forEach((frequency,i)=>{
+    const gain=ctx.createGain();gain.gain.value=.055;gain.connect(filter);
+    const swell=ctx.createOscillator(),depth=ctx.createGain();
+    swell.frequency.value=.018+i*.004;depth.gain.value=.022;
+    swell.connect(depth);depth.connect(gain.gain);swell.start();
+    [-3,3].forEach(detune=>{
+      const tone=ctx.createOscillator();tone.type='sine';tone.frequency.value=frequency;
+      tone.detune.value=detune;tone.connect(gain);tone.start();
+    });
+  });
+}
+async function syncMusic(){
+  clearTimeout(music.sleep);
+  const active=()=>music.enabled&&music.volume>0&&player.playing;
+  try{
+    if(active()){
+      if(!music.ctx)createMusic();
+      await music.ctx.resume();
+    }
+    if(!music.master)return;
+    const ctx=music.ctx,param=music.master.gain;
+    if(param.cancelAndHoldAtTime)param.cancelAndHoldAtTime(ctx.currentTime);
+    else{param.cancelScheduledValues(ctx.currentTime);param.setValueAtTime(param.value,ctx.currentTime);}
+    param.setTargetAtTime(active()?music.volume/100*.35:0,ctx.currentTime,active()?.8:.18);
+    if(!active())music.sleep=setTimeout(()=>{
+      if(!active()&&music.ctx.state==='running')music.ctx.suspend().catch(()=>{});
+    },1400);
+  }catch(error){
+    document.getElementById('music-status').textContent='Music is unavailable in this browser. Narration still works.';
+  }
+}
+function showMusic(open){document.getElementById('music-panel').hidden=!open;document.getElementById('p-music').setAttribute('aria-expanded',open);}
+function updateMusicControls(){
+  const toggle=document.getElementById('music-toggle');
+  toggle.setAttribute('aria-pressed',music.enabled);toggle.textContent=music.enabled?'Music on':'Music off';
+  document.getElementById('music-volume').value=music.volume;
+}
+updateMusicControls();
+document.getElementById('p-music').onclick=()=>showMusic(document.getElementById('music-panel').hidden);
+document.getElementById('music-close').onclick=()=>{showMusic(false);document.getElementById('p-music').focus();};
+document.getElementById('music-toggle').onclick=()=>{music.enabled=!music.enabled;store.set('shine-music',music.enabled);updateMusicControls();syncMusic();};
+document.getElementById('music-volume').oninput=e=>{music.volume=+e.target.value;store.set('shine-music-volume',music.volume);syncMusic();};
+window.addEventListener('pagehide',()=>{pause();if(music.ctx)music.ctx.suspend().catch(()=>{});});
 
 /* events */
 document.addEventListener("click",e=>{
+  if(!e.target.closest('#music-panel, #p-music'))showMusic(false);
   const o=e.target.closest("[data-open]"); if(o){openReader(o.dataset.open);return}
   const g=e.target.closest("[data-go]"); if(g){document.getElementById("q").value=""; if(!document.getElementById("reader").hidden){document.getElementById("reader").hidden=true;openId=null} location.hash=g.dataset.go; return}
 });
