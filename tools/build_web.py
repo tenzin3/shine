@@ -41,7 +41,22 @@ for it in items:
         local_img[it["id"]] = "images/" + it["id"] + ".jpg"
         embed_img[it["id"]] = "data:image/jpeg;base64," + base64.b64encode(open(f, "rb").read()).decode()
 print(len(local_img), "lesson images found")
-base = tpl.replace("/*__DATA__*/[]", json.dumps(items, ensure_ascii=False))
+audio_manifest = os.path.join(ROOT, 'web/audio/manifest.json')
+audio = json.load(open(audio_manifest)) if os.path.exists(audio_manifest) else {}
+import hashlib
+for it in items:
+    recording = audio.get(it['id'])
+    if recording:
+        signature = hashlib.sha256(json.dumps(it['paras'], ensure_ascii=False).encode()).hexdigest()
+        if recording['text_sha256'] != signature or not os.path.exists(os.path.join(ROOT, 'web', recording['src'])):
+            raise ValueError('Missing or outdated narration: ' + it['id'])
+        times = recording['paragraphs']
+        indices = recording.get('paragraph_indices', list(range(len(it['paras']))))
+        if len(times) != len(indices) or indices != sorted(set(indices)) or not indices or indices[0] < 0 or indices[-1] >= len(it['paras']) or times != sorted(times) or times[0] != 0 or times[-1] > recording['duration']:
+            raise ValueError('Invalid paragraph timestamps: ' + it['id'])
+        it['minutes'] = max(1, math.ceil(recording['duration'] / 60))
+base = tpl.replace("/*__DATA__*/[]", json.dumps(items, ensure_ascii=False)).replace('/*__AUDIO__*/{}', json.dumps(audio))
+print(len(audio), 'lesson recordings found')
 page_local = base.replace("/*__IMG__*/{}", json.dumps(local_img))
 page = base.replace("/*__IMG__*/{}", json.dumps(embed_img))
 os.makedirs(os.path.join(ROOT, "web"), exist_ok=True)

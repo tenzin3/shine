@@ -118,6 +118,7 @@ h1.coll{font-weight:600;font-size:clamp(1.6rem,3vw,2.2rem);margin:0 0 8px;text-w
 .voice{display:flex;align-items:center;gap:8px;color:var(--soft);font-size:.82rem;min-width:0}
 .voice select{background:rgba(255,255,255,.12);color:#fff;border:0;border-radius:999px;padding:8px 12px;font:inherit;font-size:.85rem;max-width:200px;min-width:0}
 .voice option{color:#0b1f4d}
+.narrator{font-size:.75rem;color:var(--soft);max-width:110px;line-height:1.3}
 .heart{flex:none;width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.14);display:grid;place-items:center}
 .heart svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:1.8}
 .heart[aria-pressed="true"] svg{fill:#ff8fa3;stroke:#ff8fa3}
@@ -227,9 +228,9 @@ h1.coll{font-weight:600;font-size:clamp(1.6rem,3vw,2.2rem);margin:0 0 8px;text-w
         <button class="stop" id="p-stop" aria-label="Stop"><svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></svg></button>
         <button class="music-button" id="p-music" aria-label="Background music settings" aria-expanded="false" aria-controls="music-panel">♫</button>
       </div>
-      <div class="prog"><span id="p-cur">0:00</span><input id="p-range" type="range" min="0" max="0" value="0" aria-label="Position in teaching"><span id="p-len">0:00</span></div>
+      <div class="prog"><span id="p-cur">0:00</span><input id="p-range" type="range" min="0" max="0" value="0" step="0.1" aria-label="Position in teaching"><span id="p-len">0:00</span></div>
     </div>
-    <div class="extras"><label class="voice" for="p-voice"><span>Voice</span><select id="p-voice"></select></label>
+    <div class="extras"><span class="narrator" id="p-narrator">Sonia · AI narration</span>
     <button class="heart" id="p-heart" aria-pressed="false" aria-label="Save to favourites"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-9-9a4.6 4.6 0 0 1 9-2.5A4.6 4.6 0 0 1 21 11c-2 4.6-9 9-9 9z"/></svg></button></div>
     <section class="music-panel" id="music-panel" hidden aria-labelledby="music-title">
       <button class="music-close" id="music-close" aria-label="Close music settings">×</button>
@@ -251,6 +252,7 @@ h1.coll{font-weight:600;font-size:clamp(1.6rem,3vw,2.2rem);margin:0 0 8px;text-w
 <script>
 const TEXTS = /*__DATA__*/[];
 const IMG = /*__IMG__*/{};
+const AUDIO = /*__AUDIO__*/{};
 const pic=(t,size)=>IMG[t.id]?`<img src="${IMG[t.id]}" alt="" loading="lazy" decoding="async">`:art(t,size);
 const ICONS={
  home:'<path d="M4 11 12 4l8 7"/><path d="M6 10v9h12v-9"/><path d="M10 19v-5h4v5"/>',
@@ -360,75 +362,70 @@ function openReader(id,push=true){
 }
 function closeReader(){document.getElementById("reader").hidden=true; openId=null; if(SHELVES.some(s=>s.id===current)||current==="saved") history.replaceState(null,"","#"+current); else history.replaceState(null,"",location.pathname+location.search); go(current)}
 
-/* player: reads aloud with the browser's speech voice */
-const synth=window.speechSynthesis; const player={id:null,i:0,playing:false,token:0};
-const fmt=s=>`${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(2,"0")}`;
-function secsBefore(t,i){return t.paras.slice(0,i).reduce((a,p)=>a+p.split(/\s+/).length,0)/2.6}
+/* Saved neural narration: one recording per lesson, with paragraph timestamps. */
+const narration=new Audio();narration.preload='metadata';
+const player={id:null,i:0,playing:false,buffering:false,token:0};
+const fmt=s=>{const seconds=Math.max(0,Math.floor(Number(s)||0));return `${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`};
 function loadTrack(id){
-  stop(); const t=byId(id); player.id=id; player.i=0;
-  document.getElementById("p-disc").innerHTML=pic(t,200);
-  document.getElementById("p-title").textContent=t.title;
-  document.getElementById("p-author").textContent=t.author;
-  const range=document.getElementById("p-range"); range.max=t.paras.length-1; range.value=0;
-  document.getElementById("p-len").textContent=fmt(secsBefore(t,t.paras.length));
-  document.getElementById("p-heart").setAttribute("aria-pressed",store.get("shine-saved",[]).includes(id));
+  stop();const t=byId(id);player.id=id;player.i=0;
+  const recording=AUDIO[id];
+  document.getElementById('p-disc').innerHTML=pic(t,200);
+  document.getElementById('p-title').textContent=t.title;
+  document.getElementById('p-author').textContent=t.author;
+  document.getElementById('p-narrator').textContent=recording?recording.narrator:'Recording unavailable';
+  if(recording)narration.src=recording.src;
+  else narration.removeAttribute('src');
+  const range=document.getElementById('p-range');range.max=recording?.duration||0;range.value=0;
+  document.getElementById('p-len').textContent=fmt(recording?.duration||0);
+  document.getElementById('p-heart').setAttribute('aria-pressed',store.get('shine-saved',[]).includes(id));
   updateProg();
 }
-function updateProg(){const t=byId(player.id); if(!t) return; document.getElementById("p-range").value=player.i; document.getElementById("p-cur").textContent=fmt(secsBefore(t,player.i));
-  document.querySelectorAll("#r-text p").forEach(p=>p.classList.toggle("speaking",player.playing&&openId===player.id&&+p.dataset.i===player.i));}
-function setIcon(){document.getElementById("p-icon").innerHTML=player.playing?'<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>':'<path d="M7 4v16l13-8z"/>';document.getElementById("p-play").setAttribute("aria-label",player.playing?"Pause":"Play")}
-let VOICE=null;
-function scoreVoice(v){
-  const n=v.name.toLowerCase();let sc=0;
-  if(/premium|natural|neural|wavenet|online/.test(n))sc+=120;
-  if(/enhanced/.test(n))sc+=100;
-  if(/siri/.test(n))sc+=80;
-  if(/google uk english|google us english/.test(n))sc+=60;
-  if(/^(ava|zoe|serena|daniel|karen|moira|evan|nathan|jamie|isha|rishi)\b/.test(n))sc+=30;
-  if(v.lang.toLowerCase()===(navigator.language||'').toLowerCase())sc+=8;
-  if(v.default)sc+=2;
-  if(/compact|novelty|bells|bad news|whisper|zarvox|trinoids|albert|bubbles|cellos|jester|organ|superstar|wobble|boing|bahh|grandpa|grandma|rocko|shelley|flo|eddy|reed|sandy/.test(n))sc-=300;
-  return sc;
+function paragraphAt(time,times){
+  let lo=0,hi=times.length;
+  while(lo<hi){const mid=(lo+hi)>>1;if(times[mid]<=time)lo=mid+1;else hi=mid;}
+  return Math.max(0,lo-1);
 }
-function loadVoices(){
-  if(!synth) return; const sel=document.getElementById("p-voice");
-  const vs=synth.getVoices().filter(v=>/^en/i.test(v.lang)).sort((a,b)=>scoreVoice(b)-scoreVoice(a));
-  if(!vs.length) return;
-  const saved=store.get("shine-voice",null);
-  VOICE=vs.find(v=>v.name===saved)||vs[0];
-  sel.innerHTML=vs.filter(v=>scoreVoice(v)>-100).map(v=>`<option ${v===VOICE?"selected":""}>${esc(v.name)}</option>`).join("");
+function followParagraph(){
+  if(openId!==player.id)return;
+  const paragraph=document.querySelector(`#r-text p[data-i="${player.i}"]`);
+  if(paragraph)paragraph.scrollIntoView({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
 }
-function speak(){
-  const t=byId(player.id); if(!t||!synth) return;
-  if(player.i>=t.paras.length){stop();return}
-  const token=++player.token; synth.cancel();
-  // A complete paragraph gives the voice context for phrasing and intonation.
-  // Splitting at every colon or sentence repeatedly reset its delivery.
-  const text=t.paras[player.i].replace(/\s+/g," ").trim();
-  const u=new SpeechSynthesisUtterance(text);
-  u.rate=.95; u.pitch=1; u.lang=VOICE?.lang||'en-US';
-  if(VOICE)u.voice=VOICE;
-  player.utterance=u;
-  u.onend=()=>{
-    if(!player.playing||token!==player.token)return;
-    setTimeout(()=>{
-      if(!player.playing||token!==player.token)return;
-      player.i++;updateProg();speak();
-    },300);
-  };
-  u.onerror=e=>{
-    if(token!==player.token||!player.playing||e.error==='canceled'||e.error==='interrupted')return;
-    pause();
-    document.getElementById('p-author').textContent='Voice unavailable. Choose another voice and press play.';
-  };
-  synth.speak(u);
-  updateProg();
-  const p=document.querySelector(`#r-text p[data-i="${player.i}"]`); if(p&&openId===player.id) p.scrollIntoView({block:"center",behavior:"smooth"});
+function updateProg(){
+  const recording=AUDIO[player.id];if(!recording)return;
+  const before=player.i;
+  const spoken=paragraphAt(narration.currentTime,recording.paragraphs);
+  player.i=recording.paragraph_indices?.[spoken]??spoken;
+  document.getElementById('p-range').value=narration.currentTime;
+  document.getElementById('p-cur').textContent=fmt(narration.currentTime);
+  document.querySelectorAll('#r-text p').forEach(p=>p.classList.toggle('speaking',player.playing&&openId===player.id&&+p.dataset.i===player.i));
+  if(before!==player.i&&player.playing)followParagraph();
 }
-function play(){if(!player.id){openReader(today().id);}if(!synth){document.getElementById("p-author").textContent="Read-aloud isn’t available in this browser";return} player.playing=true; setIcon(); syncMusic(); speak()}
-function pause(){player.playing=false; player.token++; setIcon(); synth&&synth.cancel(); syncMusic(); updateProg()}
-function stop(){player.playing=false; player.token++; player.i=0; setIcon(); synth&&synth.cancel(); syncMusic(); updateProg()}
-function jump(d){const t=byId(player.id); if(!t)return; player.i=Math.max(0,Math.min(t.paras.length-1,player.i+d)); updateProg(); if(player.playing) speak()}
+function setIcon(){document.getElementById('p-icon').innerHTML=player.playing?'<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>':'<path d="M7 4v16l13-8z"/>';document.getElementById('p-play').setAttribute('aria-label',player.playing?'Pause':'Play')}
+function play(){
+  if(!player.id)openReader(today().id);
+  if(!AUDIO[player.id])return;
+  const token=++player.token;
+  player.playing=true;player.buffering=false;setIcon();syncMusic();
+  narration.play().catch(()=>{
+    if(token!==player.token)return;
+    pause();document.getElementById('p-narrator').textContent='Could not play. Tap play to retry.';
+  });
+}
+function pause(){player.playing=false;player.buffering=false;player.token++;narration.pause();setIcon();syncMusic();updateProg()}
+function stop(){pause();narration.currentTime=0;player.i=0;updateProg()}
+function jump(d){const recording=AUDIO[player.id];if(!recording)return;const current=paragraphAt(narration.currentTime,recording.paragraphs);const i=Math.max(0,Math.min(recording.paragraphs.length-1,current+d));narration.currentTime=recording.paragraphs[i];updateProg()}
+narration.addEventListener('timeupdate',updateProg);
+narration.addEventListener('playing',()=>{player.playing=true;player.buffering=false;document.getElementById('p-narrator').textContent=AUDIO[player.id]?.narrator||'AI narration';setIcon();syncMusic();updateProg();followParagraph()});
+narration.addEventListener('waiting',()=>{player.buffering=true;syncMusic()});
+narration.addEventListener('pause',()=>{player.playing=false;setIcon();syncMusic();updateProg()});
+narration.addEventListener('ended',stop);
+narration.addEventListener('error',()=>{pause();document.getElementById('p-narrator').textContent='Recording unavailable. Please reload.';});
+narration.addEventListener('loadedmetadata',()=>{
+  if(Number.isFinite(narration.duration)){
+    document.getElementById('p-range').max=narration.duration;
+    document.getElementById('p-len').textContent=fmt(narration.duration);
+  }
+});
 
 /* Original ambient soundscape: softly moving consonant tones, no downloads. */
 const music={enabled:store.get('shine-music',true)===true,volume:Math.max(0,Math.min(100,Number(store.get('shine-music-volume',25))||0)),ctx:null,master:null,sleep:null};
@@ -452,7 +449,7 @@ function createMusic(){
 }
 async function syncMusic(){
   clearTimeout(music.sleep);
-  const active=()=>music.enabled&&music.volume>0&&player.playing;
+  const active=()=>music.enabled&&music.volume>0&&player.playing&&!player.buffering;
   try{
     if(active()){
       if(!music.ctx)createMusic();
@@ -495,7 +492,7 @@ document.getElementById("p-play").onclick=()=>player.playing?pause():play();
 document.getElementById("p-stop").onclick=stop;
 document.getElementById("p-back").onclick=()=>jump(-1);
 document.getElementById("p-fwd").onclick=()=>jump(1);
-document.getElementById("p-range").oninput=e=>{player.i=+e.target.value; updateProg(); if(player.playing) speak()};
+document.getElementById("p-range").oninput=e=>{narration.currentTime=+e.target.value; updateProg()};
 document.getElementById("p-heart").onclick=e=>{if(!player.id)return; let s=store.get("shine-saved",[]); s=s.includes(player.id)?s.filter(x=>x!==player.id):[player.id,...s]; store.set("shine-saved",s); e.currentTarget.setAttribute("aria-pressed",s.includes(player.id)); if(current==="saved"&&document.getElementById("reader").hidden) go("saved")};
 document.getElementById("today-btn").onclick=()=>openReader(today().id);
 document.getElementById("surprise").onclick=()=>openReader(TEXTS[Math.floor(Math.random()*TEXTS.length)].id);
@@ -510,8 +507,6 @@ const setPH=()=>{
 };
 window.addEventListener("resize",setPH);
 if(window.ResizeObserver){const layoutObserver=new ResizeObserver(setPH);layoutObserver.observe(document.getElementById("player"));layoutObserver.observe(document.getElementById("rail"));}
-if(synth){loadVoices(); synth.onvoiceschanged=loadVoices;}
-document.getElementById("p-voice").onchange=e=>{VOICE=synth.getVoices().find(v=>v.name===e.target.value)||VOICE; store.set("shine-voice",VOICE&&VOICE.name); if(player.playing) speak()};
 document.getElementById("p-disc").innerHTML=pic(today(),200);
 route(); setPH();
 </script>

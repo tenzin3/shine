@@ -17,6 +17,26 @@ To restore missing photographs, run `python3 tools/download_lesson_photos.py`
 local images in `web/index.html` and embeds them in `web/shine_artifact.html`
 for a portable, offline copy.
 
+## Recorded narration
+
+Lessons play saved MP3 recordings from `web/audio/` using Sonia's neural voice,
+with a slightly slower reading pace. These are AI-generated readings of the
+credited translations. The player uses real audio timestamps for seeking,
+pause/resume, and paragraph highlighting, alongside the optional ambient music.
+It does not use browser speech synthesis.
+
+To regenerate recordings, install `edge-tts==7.3.1` in a Python virtual
+environment and install FFmpeg, then run `python tools/generate_narration.py`
+followed by `python tools/build_web.py`. Generation uses Microsoft's online
+text-to-speech service through [edge-tts](https://github.com/rany2/edge-tts).
+Completed recordings are reused; no credentials are needed by the website.
+`web/audio/manifest.json` records the voice, text checksums, durations, and
+paragraph timestamps.
+
+Publish the entire `web/` folder, including `audio/`, to GitHub Pages. Both HTML
+versions reference these local audio files; keep `audio/` alongside the HTML
+when copying the site for offline use.
+
 Before downloading anything, this file maps out what is available in our main
 source, **Lotsawa House**, and how it fits the Shine app.
 Figures checked on lotsawahouse.org on **2 Nov 2026**.

@@ -1,0 +1,21 @@
+{
+  "src": "audio/LH020.mp3",
+  "voice": "en-GB-SoniaNeural",
+  "rate": "-8%",
+  "narrator": "Sonia \u00b7 AI narration",
+  "duration": 254.88,
+  "paragraphs": [
+    0,
+    14.755,
+    47.483,
+    95.856,
+    117.524,
+    142.5,
+    177.792,
+    221.23,
+    241.022,
+    251.651
+  ],
+  "text_sha256": "0b7f8da6a045ba5eb6ee5ab3d4ed25221bfb01fc224f568b11831880b519a05e",
+  "note": "AI-generated narration of the credited Lotsawa House translation"
+}
