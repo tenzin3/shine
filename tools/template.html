@@ -66,7 +66,8 @@ h1.coll{font-weight:600;font-size:clamp(1.6rem,3vw,2.2rem);margin:0 0 8px;text-w
 .card{display:grid;gap:10px;text-align:left;scroll-snap-align:start;min-width:0}
 .thumb{position:relative;aspect-ratio:1/1;max-width:100%;border-radius:18px;overflow:hidden;box-shadow:0 10px 24px rgba(5,10,40,.35);transition:transform .2s ease}
 .card:hover .thumb{transform:translateY(-4px)}
-.thumb svg{display:block;width:100%;height:100%}
+.thumb svg,.thumb img{display:block;width:100%;height:100%;object-fit:cover}
+.now .disc img{width:100%;height:100%;object-fit:cover;display:block}
 .dur{position:absolute;left:10px;bottom:10px;display:flex;align-items:center;gap:6px;background:rgba(20,25,40,.55);backdrop-filter:blur(6px);border-radius:999px;padding:4px 10px;font-size:.78rem;font-weight:600;font-variant-numeric:tabular-nums}
 .dur svg{width:9px;height:9px;fill:#fff}
 .card h3{margin:0;font-size:1rem;font-weight:700;line-height:1.3}
@@ -112,7 +113,11 @@ h1.coll{font-weight:600;font-size:clamp(1.6rem,3vw,2.2rem);margin:0 0 8px;text-w
 .btns .stop svg{width:18px;height:18px;fill:#fff;stroke:none}
 .prog{display:flex;align-items:center;gap:14px;width:100%;max-width:520px;font-size:.92rem;font-variant-numeric:tabular-nums;color:var(--soft)}
 .prog input{flex:1;accent-color:var(--accent);min-width:0}
-.heart{justify-self:end;width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.14);display:grid;place-items:center}
+.extras{justify-self:end;display:flex;align-items:center;gap:14px;min-width:0}
+.voice{display:flex;align-items:center;gap:8px;color:var(--soft);font-size:.82rem;min-width:0}
+.voice select{background:rgba(255,255,255,.12);color:#fff;border:0;border-radius:999px;padding:8px 12px;font:inherit;font-size:.85rem;max-width:200px;min-width:0}
+.voice option{color:#0b1f4d}
+.heart{flex:none;width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.14);display:grid;place-items:center}
 .heart svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:1.8}
 .heart[aria-pressed="true"] svg{fill:#ff8fa3;stroke:#ff8fa3}
 .player .hint{color:var(--soft);font-size:.85rem}
@@ -131,7 +136,9 @@ h1.coll{font-weight:600;font-size:clamp(1.6rem,3vw,2.2rem);margin:0 0 8px;text-w
   .pill-btn{display:none}
   .player{position:sticky;bottom:0;grid-row:3/4;grid-template-columns:minmax(0,1fr) auto}
   .player .controls{grid-column:1/-1;grid-row:2}
-  .heart{grid-column:2;grid-row:1}
+  .extras{grid-column:2;grid-row:1}
+  .voice span{display:none}
+  .voice select{max-width:120px}
   .now .disc{width:48px;height:48px}
   .read-hero{grid-template-columns:110px 1fr;gap:18px}
   .reader{position:fixed;bottom:var(--player-h,0px)}
@@ -160,7 +167,8 @@ h1.coll{font-weight:600;font-size:clamp(1.6rem,3vw,2.2rem);margin:0 0 8px;text-w
       </div>
       <div class="prog"><span id="p-cur">0:00</span><input id="p-range" type="range" min="0" max="0" value="0" aria-label="Position in teaching"><span id="p-len">0:00</span></div>
     </div>
-    <button class="heart" id="p-heart" aria-pressed="false" aria-label="Save to favourites"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-9-9a4.6 4.6 0 0 1 9-2.5A4.6 4.6 0 0 1 21 11c-2 4.6-9 9-9 9z"/></svg></button>
+    <div class="extras"><label class="voice" for="p-voice"><span>Voice</span><select id="p-voice"></select></label>
+    <button class="heart" id="p-heart" aria-pressed="false" aria-label="Save to favourites"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-9-9a4.6 4.6 0 0 1 9-2.5A4.6 4.6 0 0 1 21 11c-2 4.6-9 9-9 9z"/></svg></button></div>
   </footer>
 </div>
 
@@ -174,6 +182,8 @@ h1.coll{font-weight:600;font-size:clamp(1.6rem,3vw,2.2rem);margin:0 0 8px;text-w
 
 <script>
 const TEXTS = /*__DATA__*/[];
+const IMG = /*__IMG__*/{};
+const pic=(t,size)=>IMG[t.id]?`<img src="${IMG[t.id]}" alt="" loading="lazy" decoding="async">`:art(t,size);
 const ICONS={
  home:'<path d="M4 11 12 4l8 7"/><path d="M6 10v9h12v-9"/><path d="M10 19v-5h4v5"/>',
  seed:'<path d="M12 20v-8"/><path d="M12 12c0-4 3-6 7-6 0 4-3 6-7 6z"/><path d="M12 14c0-3-2-5-6-5 0 3 2 5 6 5z"/>',
@@ -237,7 +247,7 @@ function rail(active){
    items.map(s=>`<button class="nav-item" data-go="${s.id}" ${s.id===active?'aria-current="page"':""} style="--c1:${s.c[0]};--c2:${s.c[1]}"><span class="ring"><span><svg viewBox="0 0 24 24">${ICONS[s.icon]}</svg></span></span>${esc(s.name)}</button>`).join("")+
    `<p class="legal">Texts from <a href="https://www.lotsawahouse.org" target="_blank" rel="noopener">Lotsawa House</a>, CC BY-NC 4.0. Shine is Buddhist practice and reflection, not medical advice.</p>`;
 }
-const card=t=>`<button class="card" data-open="${t.id}"><div class="thumb">${art(t)}<span class="dur"><svg viewBox="0 0 10 10"><path d="M1 0v10l9-5z"/></svg>${t.minutes} min</span></div><h3>${esc(t.title)}</h3><div class="sub">${esc(shelfOf(t.playlist).name)} · ${esc(t.author)}</div></button>`;
+const card=t=>`<button class="card" data-open="${t.id}"><div class="thumb">${pic(t,400)}<span class="dur"><svg viewBox="0 0 10 10"><path d="M1 0v10l9-5z"/></svg>${t.minutes} min</span></div><h3>${esc(t.title)}</h3><div class="sub">${esc(shelfOf(t.playlist).name)} · ${esc(t.author)}</div></button>`;
 function today(){const pool=TEXTS.filter(t=>t.minutes<=6);return pool[Math.floor(Date.now()/864e5)%pool.length]}
 
 function viewHome(){
@@ -265,7 +275,7 @@ let openId=null;
 function openReader(id,push=true){
   const t=byId(id); if(!t) return; openId=id; const s=shelfOf(t.playlist);
   document.getElementById("r-crumb").textContent=`${s.name} · ${t.minutes} min read`;
-  document.getElementById("r-art").innerHTML=art(t,500);
+  document.getElementById("r-art").innerHTML=pic(t,500);
   document.getElementById("r-shelf").textContent=s.name;
   document.getElementById("r-title").textContent=t.title;
   document.getElementById("r-by").textContent=t.author;
@@ -281,12 +291,12 @@ function openReader(id,push=true){
 function closeReader(){document.getElementById("reader").hidden=true; openId=null; if(SHELVES.some(s=>s.id===current)||current==="saved") history.replaceState(null,"","#"+current); else history.replaceState(null,"",location.pathname+location.search); go(current)}
 
 /* player: reads aloud with the browser's speech voice */
-const synth=window.speechSynthesis; const player={id:null,i:0,playing:false};
+const synth=window.speechSynthesis; const player={id:null,i:0,playing:false,token:0};
 const fmt=s=>`${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(2,"0")}`;
 function secsBefore(t,i){return t.paras.slice(0,i).reduce((a,p)=>a+p.split(/\s+/).length,0)/2.6}
 function loadTrack(id){
   stop(); const t=byId(id); player.id=id; player.i=0;
-  document.getElementById("p-disc").innerHTML=art(t,200);
+  document.getElementById("p-disc").innerHTML=pic(t,200);
   document.getElementById("p-title").textContent=t.title;
   document.getElementById("p-author").textContent=t.author;
   const range=document.getElementById("p-range"); range.max=t.paras.length-1; range.value=0;
@@ -297,18 +307,34 @@ function loadTrack(id){
 function updateProg(){const t=byId(player.id); if(!t) return; document.getElementById("p-range").value=player.i; document.getElementById("p-cur").textContent=fmt(secsBefore(t,player.i));
   document.querySelectorAll("#r-text p").forEach(p=>p.classList.toggle("speaking",player.playing&&openId===player.id&&+p.dataset.i===player.i));}
 function setIcon(){document.getElementById("p-icon").innerHTML=player.playing?'<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>':'<path d="M7 4v16l13-8z"/>';document.getElementById("p-play").setAttribute("aria-label",player.playing?"Pause":"Play")}
+let VOICE=null;
+function scoreVoice(v){const n=v.name.toLowerCase();let sc=0;if(/premium/.test(n))sc+=100;if(/enhanced|natural|neural/.test(n))sc+=90;if(/google uk english|google us english/.test(n))sc+=60;if(/siri/.test(n))sc+=70;if(/^(ava|zoe|serena|daniel|karen|moira|evan|nathan|jamie|isha|rishi)\b/.test(n))sc+=30;if(/en[-_]gb/i.test(v.lang))sc+=5;if(/en[-_]in/i.test(v.lang))sc+=4;if(/compact|novelty|bells|bad news|whisper|zarvox|trinoids|albert|bubbles|cellos|jester|organ|superstar|wobble|boing|bahh|grandpa|grandma|rocko|shelley|flo|eddy|reed|sandy/.test(n))sc-=200;return sc}
+function loadVoices(){
+  if(!synth) return; const sel=document.getElementById("p-voice");
+  const vs=synth.getVoices().filter(v=>/^en/i.test(v.lang)).sort((a,b)=>scoreVoice(b)-scoreVoice(a));
+  if(!vs.length) return;
+  const saved=store.get("shine-voice",null);
+  VOICE=vs.find(v=>v.name===saved)||vs[0];
+  sel.innerHTML=vs.filter(v=>scoreVoice(v)>-100).map(v=>`<option ${v===VOICE?"selected":""}>${esc(v.name)}</option>`).join("");
+}
 function speak(){
   const t=byId(player.id); if(!t||!synth) return;
   if(player.i>=t.paras.length){stop();return}
-  const u=new SpeechSynthesisUtterance(t.paras[player.i].replace(/\n/g," ")); u.rate=.9; u.pitch=.95;
-  const v=synth.getVoices().find(v=>/en(-|_)(GB|IN|US)/i.test(v.lang)&&/natural|google|daniel|samantha|serena/i.test(v.name))||synth.getVoices().find(v=>/^en/i.test(v.lang)); if(v) u.voice=v;
-  u.onend=()=>{if(!player.playing)return; player.i++; updateProg(); speak()};
-  synth.cancel(); synth.speak(u); updateProg();
+  const token=++player.token; synth.cancel();
+  const text=t.paras[player.i].replace(/\n/g," ").replace(/\s+/g," ").trim();
+  const parts=text.match(/[^.!?;:]+[.!?;:”’"]*\s*/g)||[text];
+  parts.forEach((sent,k)=>{
+    const u=new SpeechSynthesisUtterance(sent.trim()); u.rate=.86; u.pitch=1; if(VOICE) u.voice=VOICE;
+    if(k===parts.length-1) u.onend=()=>{ if(!player.playing||token!==player.token) return;
+      setTimeout(()=>{ if(!player.playing||token!==player.token) return; player.i++; updateProg(); speak(); },700) };
+    synth.speak(u);
+  });
+  updateProg();
   const p=document.querySelector(`#r-text p[data-i="${player.i}"]`); if(p&&openId===player.id) p.scrollIntoView({block:"center",behavior:"smooth"});
 }
 function play(){if(!player.id){openReader(today().id);}if(!synth){document.getElementById("p-author").textContent="Read-aloud isn’t available in this browser";return} player.playing=true; setIcon(); speak()}
-function pause(){player.playing=false; setIcon(); synth&&synth.cancel(); updateProg()}
-function stop(){player.playing=false; player.i=0; setIcon(); synth&&synth.cancel(); updateProg()}
+function pause(){player.playing=false; player.token++; setIcon(); synth&&synth.cancel(); updateProg()}
+function stop(){player.playing=false; player.token++; player.i=0; setIcon(); synth&&synth.cancel(); updateProg()}
 function jump(d){const t=byId(player.id); if(!t)return; player.i=Math.max(0,Math.min(t.paras.length-1,player.i+d)); updateProg(); if(player.playing) speak()}
 
 /* events */
@@ -332,7 +358,8 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!document.getElemen
 function route(){const h=location.hash.slice(1); if(byId(h)){if(!SHELVES.some(s=>s.id===current))go(current); openReader(h,false)} else {document.getElementById("reader").hidden=true; openId=null; go(SHELVES.some(s=>s.id===h)||h==="saved"?h:"home")}}
 window.addEventListener("hashchange",route);
 const setPH=()=>document.documentElement.style.setProperty("--player-h",document.getElementById("player").offsetHeight+"px"); window.addEventListener("resize",setPH);
-if(synth&&synth.onvoiceschanged!==undefined) synth.onvoiceschanged=()=>{};
-document.getElementById("p-disc").innerHTML=art(today(),200);
+if(synth){loadVoices(); synth.onvoiceschanged=loadVoices;}
+document.getElementById("p-voice").onchange=e=>{VOICE=synth.getVoices().find(v=>v.name===e.target.value)||VOICE; store.set("shine-voice",VOICE&&VOICE.name); if(player.playing) speak()};
+document.getElementById("p-disc").innerHTML=pic(today(),200);
 route(); setPH();
 </script>

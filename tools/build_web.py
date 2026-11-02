@@ -31,9 +31,20 @@ for i, o in enumerate(raw, 1):
         "minutes": max(1, math.ceil(words / 180)), "paras": paras,
     })
 
+import base64
 tpl = open(os.path.join(ROOT, "tools/template.html")).read()
-page = tpl.replace("/*__DATA__*/[]", json.dumps(items, ensure_ascii=False))
+img_dir = os.path.join(ROOT, "web/images")
+local_img, embed_img = {}, {}
+for it in items:
+    f = os.path.join(img_dir, it["id"] + ".jpg")
+    if os.path.exists(f):
+        local_img[it["id"]] = "images/" + it["id"] + ".jpg"
+        embed_img[it["id"]] = "data:image/jpeg;base64," + base64.b64encode(open(f, "rb").read()).decode()
+print(len(local_img), "lesson images found")
+base = tpl.replace("/*__DATA__*/[]", json.dumps(items, ensure_ascii=False))
+page_local = base.replace("/*__IMG__*/{}", json.dumps(local_img))
+page = base.replace("/*__IMG__*/{}", json.dumps(embed_img))
 os.makedirs(os.path.join(ROOT, "web"), exist_ok=True)
-open(os.path.join(ROOT, "web/index.html"), "w").write("<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\"></head><body>\n" + page + "\n</body></html>\n")
+open(os.path.join(ROOT, "web/index.html"), "w").write("<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\"></head><body>\n" + page_local + "\n</body></html>\n")
 open(os.path.join(ROOT, "web/shine_artifact.html"), "w").write(page)
 print(len(items), "texts built into web/index.html")

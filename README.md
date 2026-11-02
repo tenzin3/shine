@@ -2,6 +2,19 @@
 
 *Tibetan wisdom for everyday life.*
 
+## Lesson artwork
+
+All 29 lessons have individual, locally stored photographs in `web/images/`,
+selected to reflect each teaching with the peaceful nature photography of Calm
+as a visual reference. Source pages, descriptions, and license links are saved
+in `web/images/credits.json`. The curated selection is in
+`tools/lesson_photos.json`.
+
+To restore missing photographs, run `python3 tools/download_lesson_photos.py`
+(requires internet access), then `python3 tools/build_web.py`. The build uses
+local images in `web/index.html` and embeds them in `web/shine_artifact.html`
+for a portable, offline copy.
+
 Before downloading anything, this file maps out what is available in our main
 source, **Lotsawa House**, and how it fits the Shine app.
 Figures checked on lotsawahouse.org on **2 Nov 2026**.
