@@ -1,5 +1,7 @@
 # Shine — Source Data Overview
 
+[Open Shine](https://tenzin3.github.io/shine/web/)
+
 *Tibetan wisdom for everyday life.*
 
 ## Lesson artwork
