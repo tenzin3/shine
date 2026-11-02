@@ -1,230 +1,338 @@
 <title>Shine</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Spectral:ital,wght@0,400;0,500;1,400&family=Manrope:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Figtree:wght@400;500;600;700&family=Spectral:ital,wght@0,400;0,500;1,400&display=swap">
 <style>
-/* Layout: night-sky streaming shelf — one hero teaching, then a horizontal shelf per life difficulty; tap a card to open a quiet reader. */
+/* Layout: fixed left rail of ringed icons + scrolling content over a dusk-sky gradient; collections show square artwork cards; a bottom player reads teachings aloud. */
 :root{
-  --night:#0d1120; --panel:#161b2d; --panel-2:#1f2540; --line:#2a3152;
-  --ink:#ede6d6; --muted:#9da3b8; --saffron:#e8a23a; --saffron-ink:#1a1206;
-  --display:"Marcellus", "Iowan Old Style", Georgia, serif;
-  --read:"Spectral", Georgia, "Times New Roman", serif;
-  --ui:"Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --sky-top:#164a6e; --sky-mid:#2b3f86; --sky-low:#45348a; --rail:#123c5e;
+  --ink:#ffffff; --soft:rgba(255,255,255,.72); --faint:rgba(255,255,255,.14);
+  --glass:rgba(255,255,255,.10); --player:#0b1f4d; --accent:#4aa3ff; --gold:#f2b84b;
+  --script:"Dancing Script", "Snell Roundhand", cursive;
+  --ui:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --read:"Spectral", Georgia, serif;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
-html,body{background:var(--night);color:var(--ink)}
-body{font-family:var(--ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
-body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--night)}
-a{color:var(--saffron)}
-button{font:inherit;color:inherit}
-:focus-visible{outline:2px solid var(--saffron);outline-offset:3px;border-radius:6px}
-.gutter{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-@media (min-width:900px){.gutter{padding-left:max(48px,env(safe-area-inset-left,0px));padding-right:max(48px,env(safe-area-inset-right,0px))}}
+html,body{height:100%}
+body{background:var(--sky-low);color:var(--ink);font-family:var(--ui);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+a{color:inherit}
+:focus-visible{outline:2px solid #fff;outline-offset:3px;border-radius:10px}
 
-/* header */
-header{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:linear-gradient(var(--night) 60%,transparent)}
-.bar{display:flex;align-items:center;gap:16px;padding-block:14px}
-.logo{font-family:var(--display);font-size:1.6rem;letter-spacing:.06em;color:var(--saffron);display:flex;align-items:center;gap:10px;text-decoration:none}
-.logo svg{width:26px;height:26px}
-.search{margin-left:auto;display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 14px;min-width:0;flex:0 1 280px}
-.search input{background:none;border:0;color:var(--ink);font:inherit;width:100%;min-width:0;outline:none}
-.search input::placeholder{color:var(--muted)}
+.app{display:grid;grid-template-columns:300px 1fr;grid-template-rows:1fr auto;height:100%}
+/* rail */
+.rail{grid-row:1/2;background:linear-gradient(180deg,var(--rail),#2a2f72 85%);padding:28px 0 16px;padding-left:max(28px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:6px;overflow-y:auto}
+.logo{font-family:var(--script);font-size:3rem;line-height:1;margin:0 0 26px 2px;text-decoration:none;display:flex;align-items:center;gap:8px}
+.logo svg{width:30px;height:30px}
+.nav-item{display:flex;align-items:center;gap:16px;padding:8px 10px 8px 0;border-radius:40px;text-align:left;font-size:1.12rem;color:var(--ink)}
+.ring{flex:none;width:58px;height:58px;border-radius:50%;padding:2px;background:conic-gradient(from 200deg,var(--c1),var(--c2),var(--c1))}
+.ring span{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;background:#173f66}
+.ring svg{width:26px;height:26px;stroke:#fff;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.nav-item:hover .ring span,.nav-item[aria-current="page"] .ring span{background:#245a8c}
+.nav-item[aria-current="page"]{font-weight:600}
+.rail .legal{margin-top:auto;color:var(--soft);font-size:.82rem;padding-right:20px;line-height:1.5}
 
-/* hero */
-.hero{position:relative;padding-block:28px 40px;overflow:hidden}
-.hero-art{position:absolute;inset:0;z-index:0;opacity:.55}
-.hero-art svg{width:100%;height:100%}
-.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,var(--night) 25%,rgba(13,17,32,.55) 65%,rgba(13,17,32,.2)),linear-gradient(0deg,var(--night),transparent 40%);z-index:0}
-.hero-inner{position:relative;z-index:1;max-width:620px;display:grid;gap:14px}
-.eyebrow{font-size:.72rem;text-transform:uppercase;letter-spacing:.18em;color:var(--saffron);font-weight:700}
-.hero h1{font-family:var(--display);font-weight:400;font-size:clamp(2rem,5vw,3.4rem);line-height:1.08;margin:0;text-wrap:balance}
-.hero .by{color:var(--muted);font-size:.95rem}
-.hero blockquote{margin:0;font-family:var(--read);font-style:italic;font-size:1.12rem;line-height:1.6;color:#d8d1c1;border-left:2px solid var(--saffron);padding-left:16px;max-width:52ch}
-.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
-.btn{border:0;border-radius:8px;padding:11px 20px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
-.btn.primary{background:var(--saffron);color:var(--saffron-ink)}
-.btn.primary:hover{filter:brightness(1.08)}
-.btn.ghost{background:rgba(237,230,214,.12);color:var(--ink)}
-.btn.ghost:hover{background:rgba(237,230,214,.2)}
+/* content */
+.content{grid-row:1/2;overflow-y:auto;position:relative;background:linear-gradient(180deg,var(--sky-top) 0%,var(--sky-mid) 45%,var(--sky-low) 100%)}
+.content::before{content:"";position:absolute;left:0;right:0;top:120px;height:420px;pointer-events:none;opacity:.22;background:
+  linear-gradient(transparent 60%,var(--sky-mid)),
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 300' preserveAspectRatio='none'%3E%3Cpath d='M0 300 L0 190 L120 120 L210 170 L330 60 L450 160 L560 90 L680 180 L800 70 L930 150 L1050 100 L1200 170 L1200 300Z' fill='%23ffffff' opacity='.5'/%3E%3Cpath d='M0 300 L0 230 L150 180 L300 220 L480 160 L640 220 L820 170 L1000 225 L1200 190 L1200 300Z' fill='%23ffffff' opacity='.6'/%3E%3C/svg%3E") center/100% 100% no-repeat}
+.inner{position:relative;padding-left:max(24px,env(safe-area-inset-left,0px));padding-right:max(24px,env(safe-area-inset-right,0px));padding-block:0 48px;max-width:1500px}
+.top{position:sticky;top:0;z-index:5;display:flex;justify-content:flex-end;align-items:center;gap:14px;padding-block:22px;padding-left:max(24px,env(safe-area-inset-left,0px));padding-right:max(24px,env(safe-area-inset-right,0px));background:linear-gradient(var(--sky-top) 55%,transparent)}
+.round{width:52px;height:52px;border-radius:50%;background:var(--glass);display:grid;place-items:center}
+.round svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round}
+.searchbox{display:flex;align-items:center;gap:10px;background:var(--glass);border-radius:999px;height:52px;padding:0 18px;flex:0 1 340px;min-width:0}
+.searchbox input{background:none;border:0;outline:none;color:#fff;font:inherit;font-size:1rem;width:100%;min-width:0}
+.searchbox input::placeholder{color:var(--soft)}
+.searchbox svg{flex:none;width:20px;height:20px;stroke:#fff;fill:none;stroke-width:1.8}
+.pill-btn{height:52px;padding:0 24px;border-radius:999px;font-weight:600;font-size:1.02rem;background:#fff;color:#16305c;white-space:nowrap}
 
-/* shelves */
-main{display:grid;gap:34px;padding-bottom:56px}
-.shelf h2{font-family:var(--display);font-weight:400;font-size:1.45rem;margin:0}
-.shelf-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:12px}
-.shelf-head p{margin:0;color:var(--muted);font-size:.9rem}
-.track-wrap{position:relative}
-.track{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(220px,260px);gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding-bottom:6px}
-.track::-webkit-scrollbar{display:none}
-.nav{position:absolute;top:0;bottom:6px;width:44px;border:0;background:rgba(13,17,32,.75);color:var(--ink);font-size:1.6rem;cursor:pointer;display:none;z-index:2}
-.nav.l{left:0;border-radius:0 10px 10px 0}.nav.r{right:0;border-radius:10px 0 0 10px}
-@media (hover:hover) and (min-width:700px){.track-wrap:hover .nav{display:block}}
+.banner{display:flex;align-items:center;gap:18px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);border-radius:18px;padding:18px 22px;margin:8px 0 38px;font-size:1.05rem;text-align:left;width:100%}
+.banner .badge{flex:none;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,#7fd3ff,#6a7bff)}
+.banner .badge svg{width:22px;height:22px;fill:#fff}
+.banner .chev{margin-left:auto;opacity:.8}
 
-/* card */
-.card{scroll-snap-align:start;background:var(--panel);border-radius:10px;overflow:hidden;cursor:pointer;border:1px solid transparent;text-align:left;padding:0;display:grid;grid-template-rows:auto 1fr;transition:transform .18s ease,border-color .18s}
-.card:hover{transform:translateY(-4px) scale(1.02);border-color:var(--saffron)}
-.art{aspect-ratio:16/9;max-width:100%;position:relative}
-.art svg{display:block;width:100%;height:100%}
-.art .mins{position:absolute;right:8px;bottom:8px;background:rgba(13,17,32,.8);border-radius:4px;padding:2px 7px;font-size:.72rem;font-weight:600;font-variant-numeric:tabular-nums}
-.meta{padding:12px 14px 14px;display:grid;gap:4px;min-width:0}
-.meta h3{margin:0;font-family:var(--display);font-weight:400;font-size:1.08rem;line-height:1.25}
-.meta span{color:var(--muted);font-size:.82rem}
-.empty{color:var(--muted);padding-block:20px}
+h1.coll{font-weight:600;font-size:clamp(1.6rem,3vw,2.2rem);margin:0 0 8px;text-wrap:balance}
+.intro{font-size:1.12rem;color:#fff;opacity:.92;max-width:60ch;margin:0 0 30px;line-height:1.55}
+.row-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:34px 0 14px}
+.row-head h2{font-size:1.35rem;font-weight:600;margin:0}
+.row-head button{color:var(--soft);font-weight:600}
+.row-head button:hover{color:#fff}
+.row{display:grid;grid-auto-flow:column;grid-auto-columns:clamp(160px,15vw,230px);gap:28px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;scroll-snap-type:x proximity}
+.row::-webkit-scrollbar{display:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:34px 28px}
+
+.card{display:grid;gap:10px;text-align:left;scroll-snap-align:start;min-width:0}
+.thumb{position:relative;aspect-ratio:1/1;max-width:100%;border-radius:18px;overflow:hidden;box-shadow:0 10px 24px rgba(5,10,40,.35);transition:transform .2s ease}
+.card:hover .thumb{transform:translateY(-4px)}
+.thumb svg{display:block;width:100%;height:100%}
+.dur{position:absolute;left:10px;bottom:10px;display:flex;align-items:center;gap:6px;background:rgba(20,25,40,.55);backdrop-filter:blur(6px);border-radius:999px;padding:4px 10px;font-size:.78rem;font-weight:600;font-variant-numeric:tabular-nums}
+.dur svg{width:9px;height:9px;fill:#fff}
+.card h3{margin:0;font-size:1rem;font-weight:700;line-height:1.3}
+.card .sub{color:var(--soft);font-size:.88rem;margin-top:-4px}
+.empty{color:var(--soft);font-size:1.05rem}
 
 /* reader */
-.reader{position:fixed;inset:0;z-index:40;background:var(--night);overflow-y:auto;overscroll-behavior:contain}
-.reader-top{position:sticky;top:0;z-index:2;background:var(--night);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
-.reader-top .bar{gap:12px}
-.reader-top .crumb{color:var(--muted);font-size:.85rem;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.close{margin-left:auto;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:7px 16px;cursor:pointer;font-weight:600}
-article{max-width:65ch;margin:0 auto;padding-block:36px 64px}
-article .eyebrow{display:block;margin-bottom:10px}
-article h1{font-family:var(--display);font-weight:400;font-size:clamp(1.8rem,4vw,2.6rem);line-height:1.12;margin:0 0 6px;text-wrap:balance}
-article .by{color:var(--muted);margin:0 0 28px}
-.text{font-family:var(--read);font-size:1.14rem;line-height:1.75;color:#e6dfcf}
-.text p{margin:0 0 .9em}
-.source{margin-top:40px;border-top:1px solid var(--line);padding-top:20px;display:grid;gap:8px;font-size:.88rem;color:var(--muted)}
-.source strong{color:var(--ink);font-weight:600}
-.source .cite{background:var(--panel);border-radius:8px;padding:12px 14px;font-family:var(--read);font-size:.95rem;color:var(--ink);word-break:break-word}
-.copy{justify-self:start;background:none;border:1px solid var(--line);border-radius:6px;padding:6px 12px;cursor:pointer;color:var(--muted)}
-.copy:hover{color:var(--ink);border-color:var(--muted)}
-.next{margin-top:28px}
+.reader{position:fixed;inset:0 0 auto 0;bottom:var(--player-h,0px);z-index:20;overflow-y:auto;background:linear-gradient(180deg,#123c5e,#2b3f86 60%,#3b3185)}
+.reader-top{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:12px;padding-block:16px;padding-top:max(16px,env(safe-area-inset-top,0px));padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));background:linear-gradient(#123c5e 70%,transparent)}
+.reader-top .crumb{color:var(--soft);font-size:.9rem;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.reader-top .round{margin-left:auto;width:44px;height:44px}
+.read-hero{display:grid;grid-template-columns:200px 1fr;gap:28px;align-items:end;max-width:900px;margin:10px auto 34px;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+.read-hero .thumb{box-shadow:0 18px 40px rgba(5,10,40,.45)}
+.read-hero h1{font-size:clamp(1.7rem,3.4vw,2.5rem);font-weight:700;margin:6px 0 6px;line-height:1.15;text-wrap:balance}
+.read-hero .by{color:var(--soft);font-size:1rem;margin:0 0 16px}
+.kicker{text-transform:uppercase;letter-spacing:.14em;font-size:.75rem;font-weight:700;color:var(--soft)}
+.listen{display:inline-flex;align-items:center;gap:10px;background:#fff;color:#16305c;font-weight:700;border-radius:999px;padding:12px 22px}
+.listen svg{width:14px;height:14px;fill:currentColor}
+.paper{max-width:900px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));padding-bottom:60px}
+.text{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:22px;padding:clamp(22px,4vw,44px)}
+.text-inner{max-width:62ch;margin:0 auto;font-family:var(--read);font-size:1.15rem;line-height:1.78;color:#f3f0ff}
+.text-inner p{margin:0 0 .9em;border-radius:6px;transition:background .3s}
+.text-inner p.speaking{background:rgba(242,184,75,.16);box-shadow:0 0 0 6px rgba(242,184,75,.16)}
+.source{margin:26px auto 0;max-width:62ch;display:grid;gap:10px;font-size:.9rem;color:var(--soft)}
+.source strong{color:#fff;font-size:.78rem;text-transform:uppercase;letter-spacing:.14em}
+.cite{background:rgba(5,15,45,.35);border-radius:12px;padding:14px 16px;color:#fff;font-family:var(--read);font-size:.98rem;line-height:1.55;word-break:break-word}
+.cite a{color:#9fd2ff}
+.copy{justify-self:start;border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:7px 16px;color:#fff;font-weight:600;font-size:.85rem}
+.more{max-width:900px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));padding-bottom:40px}
 
-footer{color:var(--muted);font-size:.8rem;padding-block:24px 40px;border-top:1px solid var(--line)}
+/* player */
+.player{grid-column:1/-1;grid-row:2/3;background:var(--player);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) minmax(0,1fr);align-items:center;gap:16px;padding-block:12px calc(12px + env(safe-area-inset-bottom,0px));padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));z-index:30}
+.now{display:flex;align-items:center;gap:16px;min-width:0}
+.now .disc{flex:none;width:64px;height:64px;border-radius:50%;overflow:hidden}
+.now .disc svg{width:100%;height:100%;display:block}
+.now .t{min-width:0}
+.now .t b{display:block;font-weight:500;font-size:1.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.now .t span{display:block;text-transform:uppercase;letter-spacing:.04em;color:var(--soft);font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.controls{display:grid;gap:8px;justify-items:center}
+.btns{display:flex;align-items:center;gap:30px}
+.btns button svg{width:24px;height:24px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.btns .play svg{width:34px;height:34px;fill:#fff;stroke:none}
+.btns .stop svg{width:18px;height:18px;fill:#fff;stroke:none}
+.prog{display:flex;align-items:center;gap:14px;width:100%;max-width:520px;font-size:.92rem;font-variant-numeric:tabular-nums;color:var(--soft)}
+.prog input{flex:1;accent-color:var(--accent);min-width:0}
+.heart{justify-self:end;width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.14);display:grid;place-items:center}
+.heart svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:1.8}
+.heart[aria-pressed="true"] svg{fill:#ff8fa3;stroke:#ff8fa3}
+.player .hint{color:var(--soft);font-size:.85rem}
+
+@media (max-width:900px){
+  body{overflow:auto}
+  .app{grid-template-columns:1fr;grid-template-rows:auto 1fr auto;height:auto;min-height:100%}
+  .rail{grid-row:1/2;flex-direction:row;align-items:center;overflow-x:auto;padding:12px 0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));gap:10px;scrollbar-width:none}
+  .rail::-webkit-scrollbar{display:none}
+  .logo{font-size:2.2rem;margin:0 8px 0 0}
+  .nav-item{flex-direction:column;gap:4px;font-size:.72rem;padding:0;text-align:center;flex:none;width:68px}
+  .ring{width:46px;height:46px}.ring svg{width:20px;height:20px}
+  .rail .legal{display:none}
+  .content{grid-row:2/3;overflow:visible}
+  .top{position:static;padding-block:14px}
+  .pill-btn{display:none}
+  .player{position:sticky;bottom:0;grid-row:3/4;grid-template-columns:minmax(0,1fr) auto}
+  .player .controls{grid-column:1/-1;grid-row:2}
+  .heart{grid-column:2;grid-row:1}
+  .now .disc{width:48px;height:48px}
+  .read-hero{grid-template-columns:110px 1fr;gap:18px}
+  .reader{position:fixed;bottom:var(--player-h,0px)}
+}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
-@media (max-width:520px){.track{grid-auto-columns:minmax(200px,72%)}.search{flex-basis:180px}}
 </style>
 
-<header class="gutter">
-  <div class="bar">
-    <a class="logo" href="#" id="home-link" aria-label="Shine home">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4c3 5 6 8 6 13a6 6 0 0 1-12 0c0-5 3-8 6-13z" fill="#e8a23a"/><path d="M8 25h16l-2 4H10z" fill="#9da3b8"/></svg>
-      Shine
-    </a>
-    <label class="search" for="q">
-      <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="#9da3b8" stroke-width="2"/><path d="m20 20-4-4" stroke="#9da3b8" stroke-width="2" stroke-linecap="round"/></svg>
-      <input id="q" type="search" placeholder="Search teachings or masters" autocomplete="off">
-    </label>
+<div class="app">
+  <nav class="rail" id="rail" aria-label="Collections"></nav>
+  <div class="content" id="content">
+    <div class="top">
+      <label class="searchbox" for="q"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="q" type="search" placeholder="Search teachings or masters" autocomplete="off"></label>
+      <button class="round" id="surprise" title="Surprise me" aria-label="Open a random teaching"><svg viewBox="0 0 24 24"><path d="M3 20 9.5 8l4 7 2.5-4 5 9z"/><path d="m8 12 1.5 2 1.5-2"/></svg></button>
+      <button class="pill-btn" id="today-btn">Today’s teaching</button>
+    </div>
+    <div class="inner" id="view"></div>
   </div>
-</header>
-
-<section class="hero gutter" id="hero"></section>
-<main class="gutter" id="shelves"></main>
-
-<footer class="gutter">
-  Texts from <a href="https://www.lotsawahouse.org" target="_blank" rel="noopener">Lotsawa House</a>, used under
-  <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener">CC BY-NC 4.0</a>.
-  Each teaching credits its author and translator. Shine offers Buddhist practice and reflection; it is not medical or mental-health advice.
-</footer>
+  <footer class="player" id="player">
+    <div class="now"><div class="disc" id="p-disc"></div><div class="t"><b id="p-title">Choose a teaching</b><span id="p-author">Tap any card to begin</span></div></div>
+    <div class="controls">
+      <div class="btns">
+        <button id="p-back" aria-label="Previous paragraph"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.7"/><path d="M4 4v4h4"/></svg></button>
+        <button class="play" id="p-play" aria-label="Play"><svg viewBox="0 0 24 24" id="p-icon"><path d="M7 4v16l13-8z"/></svg></button>
+        <button id="p-fwd" aria-label="Next paragraph"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v4h-4"/></svg></button>
+        <button class="stop" id="p-stop" aria-label="Stop"><svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></svg></button>
+      </div>
+      <div class="prog"><span id="p-cur">0:00</span><input id="p-range" type="range" min="0" max="0" value="0" aria-label="Position in teaching"><span id="p-len">0:00</span></div>
+    </div>
+    <button class="heart" id="p-heart" aria-pressed="false" aria-label="Save to favourites"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-9-9a4.6 4.6 0 0 1 9-2.5A4.6 4.6 0 0 1 21 11c-2 4.6-9 9-9 9z"/></svg></button>
+  </footer>
+</div>
 
 <div class="reader" id="reader" hidden role="dialog" aria-modal="true" aria-labelledby="r-title">
-  <div class="reader-top"><div class="bar gutter">
-    <span class="crumb" id="r-crumb"></span>
-    <button class="close" id="r-close">Close</button>
-  </div></div>
-  <article class="gutter">
-    <span class="eyebrow" id="r-shelf"></span>
-    <h1 id="r-title"></h1>
-    <p class="by" id="r-by"></p>
-    <div class="text" id="r-text"></div>
-    <div class="source">
-      <strong>Source</strong>
-      <div class="cite" id="r-cite"></div>
-      <button class="copy" id="r-copy">Copy citation</button>
-    </div>
-    <div class="next" id="r-next"></div>
-  </article>
+  <div class="reader-top"><span class="crumb" id="r-crumb"></span><button class="round" id="r-close" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  <div class="read-hero"><div class="thumb" id="r-art"></div><div><span class="kicker" id="r-shelf"></span><h1 id="r-title"></h1><p class="by" id="r-by"></p><button class="listen" id="r-listen"><svg viewBox="0 0 24 24"><path d="M7 4v16l13-8z"/></svg>Listen</button></div></div>
+  <div class="paper"><div class="text"><div class="text-inner" id="r-text"></div>
+    <div class="source"><strong>Source</strong><div class="cite" id="r-cite"></div><button class="copy" id="r-copy">Copy citation</button></div></div></div>
+  <div class="more" id="r-more"></div>
 </div>
 
 <script>
 const TEXTS = /*__DATA__*/[];
-const SHELVES = [
-  {id:"beginners", name:"Start here", line:"Simple first steps into meditation", hue:[38,72]},
-  {id:"hard-times-suffering", name:"When life is hard", line:"Bringing pain, sickness and setbacks onto the path", hue:[350,40]},
-  {id:"focus-restless-mind", name:"A restless mind", line:"Calm abiding, mindfulness and concentration", hue:[210,55]},
-  {id:"anger-difficult-people", name:"Anger and difficult people", line:"Mind training for the people who test us", hue:[12,62]},
-  {id:"compassion-kindness", name:"Opening the heart", line:"Love, compassion and bodhicitta", hue:[28,70]},
-  {id:"change-loss-impermanence", name:"Everything changes", line:"Reflections on impermanence", hue:[265,35]},
-  {id:"grief-death", name:"Grief and death", line:"Preparing for death and the bardos", hue:[225,30]},
-  {id:"family-friends", name:"Family and friends", line:"Parents, companions and the people we keep close", hue:[160,35]},
-  {id:"simplicity-what-matters", name:"What really matters", line:"Heart advice on a simple, meaningful life", hue:[45,45]},
+const ICONS={
+ home:'<path d="M4 11 12 4l8 7"/><path d="M6 10v9h12v-9"/><path d="M10 19v-5h4v5"/>',
+ seed:'<path d="M12 20v-8"/><path d="M12 12c0-4 3-6 7-6 0 4-3 6-7 6z"/><path d="M12 14c0-3-2-5-6-5 0 3 2 5 6 5z"/>',
+ rain:'<path d="M7 15a4 4 0 1 1 1-7.9A5 5 0 0 1 18 9a3 3 0 0 1 0 6z"/><path d="M9 18l-1 2M13 18l-1 2M17 18l-1 2"/>',
+ circle:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/>',
+ flame:'<path d="M12 3c3 4 5 6 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 1-9z"/>',
+ heart:'<path d="M12 20s-7-4.4-9-9a4.6 4.6 0 0 1 9-2.5A4.6 4.6 0 0 1 21 11c-2 4.6-9 9-9 9z"/>',
+ leaf:'<path d="M5 19c0-8 5-13 14-14-1 9-6 14-14 14z"/><path d="M5 19 13 11"/>',
+ moon:'<path d="M18 15A7 7 0 0 1 9 6a7 7 0 1 0 9 9z"/>',
+ people:'<circle cx="9" cy="9" r="3"/><circle cx="17" cy="10" r="2.5"/><path d="M3 19c0-3 3-5 6-5s6 2 6 5"/><path d="M15 15c3 0 6 1.5 6 4"/>',
+ lamp:'<path d="M12 3c2 3 3 4.5 3 6.5a3 3 0 0 1-6 0C9 7.5 10 6 12 3z"/><path d="M6 14h12l-2 6H8z"/>',
+ star:'<path d="m12 4 2.4 5 5.6.8-4 4 1 5.6-5-2.7-5 2.7 1-5.6-4-4 5.6-.8z"/>'
+};
+const SHELVES=[
+ {id:"beginners",name:"Start here",icon:"seed",c:["#6fe3c1","#4aa3ff"],line:"Simple first steps into meditation, from masters who wrote for beginners."},
+ {id:"hard-times-suffering",name:"Hard Times",icon:"rain",c:["#5fb7ff","#8b7cff"],line:"Teachings for bringing pain, sickness and setbacks onto the path, so hard days become part of your practice."},
+ {id:"focus-restless-mind",name:"Restless Mind",icon:"circle",c:["#8b7cff","#c38bff"],line:"Calm abiding, mindfulness and concentration for a mind that won’t sit still."},
+ {id:"anger-difficult-people",name:"Anger",icon:"flame",c:["#c38bff","#ff8fb1"],line:"Mind training for the people who test us most, and the anger they stir up."},
+ {id:"compassion-kindness",name:"Compassion",icon:"heart",c:["#ff8fb1","#ffb36b"],line:"Love, compassion and bodhicitta: practices for opening the heart."},
+ {id:"change-loss-impermanence",name:"Change",icon:"leaf",c:["#ffb36b","#f2d36b"],line:"Reflections on impermanence, for when life shifts under your feet."},
+ {id:"grief-death",name:"Grief & Death",icon:"moon",c:["#f2d36b","#9be38a"],line:"Gentle teachings on dying, loss and the bardos."},
+ {id:"family-friends",name:"Family & Friends",icon:"people",c:["#9be38a","#6fe3c1"],line:"Parents, companions and the people we keep close."},
+ {id:"simplicity-what-matters",name:"What Matters",icon:"lamp",c:["#6fe3c1","#5fb7ff"],line:"Heart advice on living a simple, meaningful life."},
 ];
-const shelfOf = id => SHELVES.find(s=>s.id===id);
-const byId = id => TEXTS.find(t=>t.id===id);
+const shelfOf=id=>SHELVES.find(s=>s.id===id); const byId=id=>TEXTS.find(t=>t.id===id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const store={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 
-function seed(str){let h=2166136261;for(const c of str){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return ()=>{h^=h<<13;h^=h>>>17;h^=h<<5;return ((h>>>0)%1000)/1000}}
-function art(t, w=320, h=180){
-  const s=shelfOf(t.playlist)||SHELVES[0]; const r=seed(t.id+t.title); const [hue,sat]=s.hue;
-  const sky1=`hsl(${hue} ${sat}% 18%)`, sky2=`hsl(${(hue+25)%360} ${sat}% 34%)`;
-  const sunX=w*(.2+r()*.6), sunY=h*(.22+r()*.2), sunR=12+r()*16;
-  const ridge=(base,amp,col)=>{let d=`M0 ${h}`;const n=6+Math.floor(r()*4);for(let i=0;i<=n;i++){const x=w*i/n;const y=base-amp*r();d+=` L${x.toFixed(1)} ${y.toFixed(1)}`}return `<path d="${d} L${w} ${h} Z" fill="${col}"/>`};
-  const flags = r()>.45 ? (()=>{const cols=["#2f6bd1","#f2efe6","#c8362f","#2e8b57","#e8b23a"];let g=`<path d="M${w*.05} ${h*.18} Q ${w*.5} ${h*.34} ${w*.95} ${h*.16}" stroke="rgba(237,230,214,.35)" fill="none"/>`;for(let i=0;i<10;i++){const x=w*.08+i*w*.085;const y=h*.18+Math.sin(i/9*Math.PI)*h*.13;g+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(w*.05).toFixed(1)}" height="${(h*.09).toFixed(1)}" fill="${cols[i%5]}" opacity=".8"/>`}return g})() : "";
-  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="g${t.id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky1}"/><stop offset="1" stop-color="${sky2}"/></linearGradient></defs><rect width="${w}" height="${h}" fill="url(#g${t.id})"/><circle cx="${sunX}" cy="${sunY}" r="${sunR}" fill="#e8a23a" opacity=".85"/>${flags}${ridge(h*.72,h*.32,`hsl(${hue} ${sat}% 12% / .9)`)}${ridge(h*.9,h*.2,"#0d1120")}</svg>`;
+/* artwork: soft photographic-feeling scenes drawn as SVG */
+function rng(str){let h=2166136261;for(const c of str){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return()=>{h^=h<<13;h^=h>>>17;h^=h<<5;return((h>>>0)%10000)/10000}}
+const PALETTES={
+ "beginners":[["#9ad7e8","#f6d8b5","#3d6f8f"],["#bfe3d0","#f3e2b8","#2f6b63"]],
+ "hard-times-suffering":[["#1d3b6b","#6f8fc4","#0e1f3d"],["#2a2f5c","#8c86c9","#141733"]],
+ "focus-restless-mind":[["#0f6f86","#59c3c9","#083846"],["#1b4f8a","#7fb6e6","#0b2647"]],
+ "anger-difficult-people":[["#f08a4b","#ffd29a","#5b2a3d"],["#d9645c","#ffc58f","#3b1f37"]],
+ "compassion-kindness":[["#ff9a7a","#ffe0b2","#6a3a5a"],["#f7b0b8","#ffe7c7","#5a3a66"]],
+ "change-loss-impermanence":[["#6a5aa8","#f0a6a0","#2b2457"],["#4b4f9a","#e5b07c","#1f2350"]],
+ "grief-death":[["#26345f","#8aa0c8","#111a33"],["#3b3a6e","#b9a6d6","#191838"]],
+ "family-friends":[["#5fa36a","#f3e0a0","#24452e"],["#6fa6a0","#f6dcae","#28423f"]],
+ "simplicity-what-matters":[["#3f7fb0","#f4c27a","#1d3550"],["#5b8fb8","#f7d9a0","#203a55"]],
+};
+function art(t,size=400){
+  const r=rng(t.id+t.title), pal=(PALETTES[t.playlist]||PALETTES.beginners)[Math.floor(r()*2)], [deep,light,dark]=pal, W=size,H=size, id="a"+t.id+size;
+  const kind=["lake","ripples","sunset","waves","mist","flags"][Math.floor(r()*6)];
+  const sky=`<linearGradient id="${id}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${deep}"/><stop offset=".62" stop-color="${light}"/><stop offset="1" stop-color="${deep}"/></linearGradient>`;
+  const blur=`<filter id="${id}b"><feGaussianBlur stdDeviation="${W*.012}"/></filter><filter id="${id}bb"><feGaussianBlur stdDeviation="${W*.04}"/></filter>`;
+  const ridge=(base,amp,n,fill,op)=>{let d=`M0 ${H}L0 ${base}`;for(let i=1;i<=n;i++){d+=` L${(W*i/n).toFixed(1)} ${(base-amp*r()).toFixed(1)}`}return`<path d="${d} L${W} ${H}Z" fill="${fill}" opacity="${op}"/>`};
+  let g="";
+  if(kind==="lake"){g=`<rect width="${W}" height="${H}" fill="url(#${id}s)"/>${ridge(H*.5,H*.22,7,dark,.75)}${ridge(H*.56,H*.12,9,dark,.95)}<g transform="translate(0 ${H*1.12}) scale(1 -1)" opacity=".35" filter="url(#${id}b)">${ridge(H*.5,H*.2,7,dark,.8)}</g><rect y="${H*.56}" width="${W}" height="${H*.44}" fill="${deep}" opacity=".45"/>${[0,1,2,3].map(i=>`<ellipse cx="${W*.55}" cy="${H*.8}" rx="${W*(.06+i*.07)}" ry="${H*(.015+i*.018)}" fill="none" stroke="${light}" stroke-opacity="${.5-i*.1}"/>`).join("")}`}
+  if(kind==="ripples"){g=`<rect width="${W}" height="${H}" fill="${dark}"/><radialGradient id="${id}r"><stop offset="0" stop-color="${light}"/><stop offset="1" stop-color="${deep}"/></radialGradient><rect width="${W}" height="${H}" fill="url(#${id}r)" opacity=".8"/>${Array.from({length:14},(_,i)=>`<circle cx="${W/2}" cy="${H/2}" r="${W*.03*(i+1)}" fill="none" stroke="${i%2?light:dark}" stroke-width="${W*.012}" opacity="${.55-i*.03}" filter="url(#${id}b)"/>`).join("")}`}
+  if(kind==="sunset"){g=`<rect width="${W}" height="${H}" fill="url(#${id}s)"/><circle cx="${W*(.35+r()*.3)}" cy="${H*.48}" r="${W*.13}" fill="#ffd38a" filter="url(#${id}bb)"/><circle cx="${W*(.5)}" cy="${H*.5}" r="${W*.05}" fill="#fff2cc" opacity=".9" filter="url(#${id}b)"/>${ridge(H*.62,H*.06,10,dark,.9)}<rect y="${H*.62}" width="${W}" height="${H*.38}" fill="${dark}" opacity=".85"/>${Array.from({length:7},(_,i)=>`<rect x="${W*(.35+r()*.2)}" y="${H*(.65+i*.045)}" width="${W*(.25-i*.025)}" height="${H*.008}" fill="#ffd38a" opacity="${.6-i*.07}"/>`).join("")}`}
+  if(kind==="waves"){g=`<rect width="${W}" height="${H}" fill="${deep}"/>${Array.from({length:11},(_,i)=>{const y=H*(i/10);return`<path d="M0 ${y} Q ${W*.25} ${y-H*.05} ${W*.5} ${y} T ${W} ${y} L ${W} ${y+H*.12} L 0 ${y+H*.12}Z" fill="${i%2?light:dark}" opacity="${i%2?.35:.55}" filter="url(#${id}b)"/>`}).join("")}`}
+  if(kind==="mist"){g=`<rect width="${W}" height="${H}" fill="url(#${id}s)"/>${[0,1,2,3].map(i=>`<g filter="url(#${id}b)">${ridge(H*(.45+i*.13),H*.14,6+i,dark,.35+i*.17)}</g>`).join("")}<rect width="${W}" height="${H}" fill="${light}" opacity=".12"/>`}
+  if(kind==="flags"){const cols=["#2f6bd1","#f5f1e6","#c8362f","#2e8b57","#e8b23a"];g=`<rect width="${W}" height="${H}" fill="url(#${id}s)"/>${ridge(H*.78,H*.3,6,dark,.85)}<path d="M${-W*.05} ${H*.22} Q ${W*.5} ${H*.48} ${W*1.05} ${H*.18}" stroke="rgba(255,255,255,.5)" fill="none" stroke-width="${W*.004}"/>${Array.from({length:12},(_,i)=>{const x=W*(.01+i*.085),tt=i/11,y=H*(.2+Math.sin(tt*Math.PI)*.18);return`<path d="M${x} ${y} l${W*.06} ${-H*.005} l${-W*.004} ${H*.085} l${-W*.058} ${H*.004}z" fill="${cols[i%5]}" opacity=".9"/>`}).join("")}`}
+  return`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs>${sky}${blur}</defs>${g}<rect width="${W}" height="${H}" fill="url(#${id}v)" opacity="0"/></svg>`;
 }
-const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const cite = t => `"${t.title}" by ${t.author}. ${t.credit} Lotsawa House, CC BY-NC 4.0. ${t.url}`;
 
-function card(t){
-  return `<button class="card" data-id="${t.id}"><div class="art">${art(t)}<span class="mins">${t.minutes} min</span></div><div class="meta"><h3>${esc(t.title)}</h3><span>${esc(t.author)}</span></div></button>`;
+function rail(active){
+  const items=[{id:"home",name:"Home",icon:"home",c:["#6fe3c1","#4aa3ff"]},...SHELVES,{id:"saved",name:"Saved",icon:"star",c:["#f2d36b","#ff8fb1"]}];
+  document.getElementById("rail").innerHTML=`<a class="logo" href="#home" aria-label="Shine home"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4c3 5 6 8 6 13a6 6 0 0 1-12 0c0-5 3-8 6-13z" fill="#f2b84b"/><path d="M9 25h14l-2 4H11z" fill="#fff" opacity=".8"/></svg>Shine</a>`+
+   items.map(s=>`<button class="nav-item" data-go="${s.id}" ${s.id===active?'aria-current="page"':""} style="--c1:${s.c[0]};--c2:${s.c[1]}"><span class="ring"><span><svg viewBox="0 0 24 24">${ICONS[s.icon]}</svg></span></span>${esc(s.name)}</button>`).join("")+
+   `<p class="legal">Texts from <a href="https://www.lotsawahouse.org" target="_blank" rel="noopener">Lotsawa House</a>, CC BY-NC 4.0. Shine is Buddhist practice and reflection, not medical advice.</p>`;
 }
-function shelf(title, line, list, id){
-  return `<section class="shelf" aria-labelledby="h-${id}"><div class="shelf-head"><h2 id="h-${id}">${esc(title)}</h2><p>${esc(line)}</p></div><div class="track-wrap"><button class="nav l" data-dir="-1" aria-label="Scroll left">‹</button><div class="track">${list.map(card).join("")}</div><button class="nav r" data-dir="1" aria-label="Scroll right">›</button></div></section>`;
+const card=t=>`<button class="card" data-open="${t.id}"><div class="thumb">${art(t)}<span class="dur"><svg viewBox="0 0 10 10"><path d="M1 0v10l9-5z"/></svg>${t.minutes} min</span></div><h3>${esc(t.title)}</h3><div class="sub">${esc(shelfOf(t.playlist).name)} · ${esc(t.author)}</div></button>`;
+function today(){const pool=TEXTS.filter(t=>t.minutes<=6);return pool[Math.floor(Date.now()/864e5)%pool.length]}
+
+function viewHome(){
+  const t=today(), recent=store.get("shine-recent",[]).map(byId).filter(Boolean);
+  let h=`<button class="banner" data-open="${t.id}"><span class="badge"><svg viewBox="0 0 24 24"><path d="M12 3c2.5 4 4 6 4 9a4 4 0 0 1-8 0c0-3 1.5-5 4-9z"/></svg></span><span><b>Today’s teaching:</b> ${esc(t.title)} by ${esc(t.author)} · ${t.minutes} min</span><span class="chev">›</span></button>`;
+  h+=`<h1 class="coll">Tibetan wisdom for everyday life</h1><p class="intro">Short teachings from Tibetan Buddhist masters, gathered around the difficulties we all meet. Read them, or press play and listen.</p>`;
+  if(recent.length) h+=row("Continue","recent",recent);
+  for(const s of SHELVES){const list=TEXTS.filter(x=>x.playlist===s.id); if(list.length) h+=row(s.name,s.id,list)}
+  return h;
 }
-function renderShelves(q=""){
-  const el=document.getElementById("shelves"); q=q.trim().toLowerCase();
-  if(q){
-    const hits=TEXTS.filter(t=>(t.title+" "+t.author+" "+t.paras.join(" ")).toLowerCase().includes(q));
-    el.innerHTML = hits.length ? shelf(`Results for “${q}”`, `${hits.length} teaching${hits.length>1?"s":""}`, hits, "results") : `<p class="empty">No teachings match “${esc(q)}”. Try a feeling like “anger”, or a master like “Patrul”.</p>`;
-    return;
-  }
-  let html="";
-  let recent=[]; try{recent=JSON.parse(localStorage.getItem("shine-recent")||"[]")}catch(e){}
-  recent=recent.map(byId).filter(Boolean);
-  if(recent.length) html+=shelf("Continue reading","Teachings you opened recently",recent,"recent");
-  for(const s of SHELVES){const list=TEXTS.filter(t=>t.playlist===s.id); if(list.length) html+=shelf(s.name,s.line,list,s.id)}
-  el.innerHTML=html;
+const row=(name,id,list)=>`<div class="row-head"><h2>${esc(name)}</h2>${id==="recent"?"":`<button data-go="${id}">See all ›</button>`}</div><div class="row">${list.map(card).join("")}</div>`;
+function viewShelf(id){const s=shelfOf(id),list=TEXTS.filter(t=>t.playlist===id);return`<h1 class="coll">${esc(s.name)}</h1><p class="intro">${esc(s.line)}</p><div class="grid">${list.map(card).join("")}</div>`}
+function viewSaved(){const list=store.get("shine-saved",[]).map(byId).filter(Boolean);return`<h1 class="coll">Saved</h1><p class="intro">Teachings you marked with the heart in the player.</p>`+(list.length?`<div class="grid">${list.map(card).join("")}</div>`:`<p class="empty">Nothing saved yet. Open a teaching and tap the heart in the player bar.</p>`)}
+function viewSearch(q){const ql=q.toLowerCase(),hits=TEXTS.filter(t=>(t.title+" "+t.author+" "+t.paras.join(" ")).toLowerCase().includes(ql));return`<h1 class="coll">Results for “${esc(q)}”</h1><p class="intro">${hits.length} teaching${hits.length===1?"":"s"}</p>`+(hits.length?`<div class="grid">${hits.map(card).join("")}</div>`:`<p class="empty">Try a feeling like “anger” or a master like “Patrul”.</p>`)}
+
+let current="home";
+function go(id){
+  current=id; const q=document.getElementById("q").value.trim();
+  document.getElementById("view").innerHTML = q ? viewSearch(q) : id==="home"?viewHome(): id==="saved"?viewSaved(): viewShelf(id);
+  rail(q?"":id); document.getElementById("content").scrollTop=0;
 }
-function renderHero(){
-  const day=Math.floor(Date.now()/864e5); const pool=TEXTS.filter(t=>t.minutes<=6); const t=pool[day%pool.length];
-  const first=t.paras.find(p=>p.length>60)||t.paras[0]; const lines=first.length>240?first.slice(0,240).replace(/\s\S*$/,"")+"…":first;
-  document.getElementById("hero").innerHTML=`<div class="hero-art">${art(t,1200,500)}</div><div class="hero-inner"><span class="eyebrow">Today’s teaching · ${esc(shelfOf(t.playlist).name)}</span><h1>${esc(t.title)}</h1><span class="by">${esc(t.author)} · ${t.minutes} min read</span><blockquote>${esc(lines)}</blockquote><div class="actions"><button class="btn primary" data-id="${t.id}">▶ Read now</button><a class="btn ghost" href="#shelves-anchor" id="browse">Browse all</a></div></div>`;
-}
-function openReader(id, push=true){
-  const t=byId(id); if(!t) return;
-  const s=shelfOf(t.playlist);
-  document.getElementById("r-crumb").textContent=`${s.name} · ${t.minutes} min`;
+
+/* reader */
+let openId=null;
+function openReader(id,push=true){
+  const t=byId(id); if(!t) return; openId=id; const s=shelfOf(t.playlist);
+  document.getElementById("r-crumb").textContent=`${s.name} · ${t.minutes} min read`;
+  document.getElementById("r-art").innerHTML=art(t,500);
   document.getElementById("r-shelf").textContent=s.name;
   document.getElementById("r-title").textContent=t.title;
-  document.getElementById("r-by").textContent=`by ${t.author}`;
-  document.getElementById("r-text").innerHTML=t.paras.map(p=>`<p>${esc(p).replace(/\n/g,"<br>")}</p>`).join("");
-  document.getElementById("r-cite").innerHTML=`“${esc(t.title)}” by ${esc(t.author)}. ${esc(t.credit)} <a href="${t.url}" target="_blank" rel="noopener">Lotsawa House</a>, CC BY-NC 4.0. <br><span style="color:var(--muted);font-size:.85rem">Version ${esc(t.version)} · retrieved ${esc(t.retrieved)} · ${t.id}</span>`;
-  const more=TEXTS.filter(x=>x.playlist===t.playlist&&x.id!==t.id).slice(0,1)[0];
-  document.getElementById("r-next").innerHTML= more ? `<button class="btn ghost" data-id="${more.id}">Next in ${esc(s.name)}: ${esc(more.title)} →</button>` : "";
-  const r=document.getElementById("reader"); r.hidden=false; r.scrollTop=0; document.body.style.overflow="hidden";
-  document.getElementById("r-close").focus();
-  try{let rec=JSON.parse(localStorage.getItem("shine-recent")||"[]").filter(x=>x!==id);rec.unshift(id);localStorage.setItem("shine-recent",JSON.stringify(rec.slice(0,8)))}catch(e){}
-  if(push && location.hash!=="#"+id) location.hash=id;
+  document.getElementById("r-by").textContent=t.author;
+  document.getElementById("r-text").innerHTML=t.paras.map((p,i)=>`<p data-i="${i}">${esc(p).replace(/\n/g,"<br>")}</p>`).join("");
+  document.getElementById("r-cite").innerHTML=`“${esc(t.title)}” by ${esc(t.author)}. ${esc(t.credit)} <a href="${t.url}" target="_blank" rel="noopener">Lotsawa House</a>, CC BY-NC 4.0.<br><span style="opacity:.7;font-size:.85rem">Version ${esc(t.version)} · retrieved ${esc(t.retrieved)} · ${t.id}</span>`;
+  const more=TEXTS.filter(x=>x.playlist===t.playlist&&x.id!==t.id);
+  document.getElementById("r-more").innerHTML=more.length?`<div class="row-head"><h2>More in ${esc(s.name)}</h2></div><div class="row">${more.map(card).join("")}</div>`:"";
+  const r=document.getElementById("reader"); r.hidden=false; r.scrollTop=0;
+  let rec=store.get("shine-recent",[]).filter(x=>x!==id); rec.unshift(id); store.set("shine-recent",rec.slice(0,8));
+  if(player.id!==id) loadTrack(id);
+  if(push&&location.hash!=="#"+id) location.hash=id;
 }
-function closeReader(){
-  document.getElementById("reader").hidden=true; document.body.style.overflow="";
-  if(location.hash) history.replaceState(null,"",location.pathname+location.search);
-  renderShelves(document.getElementById("q").value);
+function closeReader(){document.getElementById("reader").hidden=true; openId=null; if(SHELVES.some(s=>s.id===current)||current==="saved") history.replaceState(null,"","#"+current); else history.replaceState(null,"",location.pathname+location.search); go(current)}
+
+/* player: reads aloud with the browser's speech voice */
+const synth=window.speechSynthesis; const player={id:null,i:0,playing:false};
+const fmt=s=>`${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(2,"0")}`;
+function secsBefore(t,i){return t.paras.slice(0,i).reduce((a,p)=>a+p.split(/\s+/).length,0)/2.6}
+function loadTrack(id){
+  stop(); const t=byId(id); player.id=id; player.i=0;
+  document.getElementById("p-disc").innerHTML=art(t,200);
+  document.getElementById("p-title").textContent=t.title;
+  document.getElementById("p-author").textContent=t.author;
+  const range=document.getElementById("p-range"); range.max=t.paras.length-1; range.value=0;
+  document.getElementById("p-len").textContent=fmt(secsBefore(t,t.paras.length));
+  document.getElementById("p-heart").setAttribute("aria-pressed",store.get("shine-saved",[]).includes(id));
+  updateProg();
 }
+function updateProg(){const t=byId(player.id); if(!t) return; document.getElementById("p-range").value=player.i; document.getElementById("p-cur").textContent=fmt(secsBefore(t,player.i));
+  document.querySelectorAll("#r-text p").forEach(p=>p.classList.toggle("speaking",player.playing&&openId===player.id&&+p.dataset.i===player.i));}
+function setIcon(){document.getElementById("p-icon").innerHTML=player.playing?'<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>':'<path d="M7 4v16l13-8z"/>';document.getElementById("p-play").setAttribute("aria-label",player.playing?"Pause":"Play")}
+function speak(){
+  const t=byId(player.id); if(!t||!synth) return;
+  if(player.i>=t.paras.length){stop();return}
+  const u=new SpeechSynthesisUtterance(t.paras[player.i].replace(/\n/g," ")); u.rate=.9; u.pitch=.95;
+  const v=synth.getVoices().find(v=>/en(-|_)(GB|IN|US)/i.test(v.lang)&&/natural|google|daniel|samantha|serena/i.test(v.name))||synth.getVoices().find(v=>/^en/i.test(v.lang)); if(v) u.voice=v;
+  u.onend=()=>{if(!player.playing)return; player.i++; updateProg(); speak()};
+  synth.cancel(); synth.speak(u); updateProg();
+  const p=document.querySelector(`#r-text p[data-i="${player.i}"]`); if(p&&openId===player.id) p.scrollIntoView({block:"center",behavior:"smooth"});
+}
+function play(){if(!player.id){openReader(today().id);}if(!synth){document.getElementById("p-author").textContent="Read-aloud isn’t available in this browser";return} player.playing=true; setIcon(); speak()}
+function pause(){player.playing=false; setIcon(); synth&&synth.cancel(); updateProg()}
+function stop(){player.playing=false; player.i=0; setIcon(); synth&&synth.cancel(); updateProg()}
+function jump(d){const t=byId(player.id); if(!t)return; player.i=Math.max(0,Math.min(t.paras.length-1,player.i+d)); updateProg(); if(player.playing) speak()}
+
+/* events */
 document.addEventListener("click",e=>{
-  const nav=e.target.closest(".nav"); if(nav){const tr=nav.parentElement.querySelector(".track");tr.scrollBy({left:nav.dataset.dir*tr.clientWidth*.85,behavior:"smooth"});return}
-  const b=e.target.closest("[data-id]"); if(b){openReader(b.dataset.id);return}
-  if(e.target.id==="browse"){e.preventDefault();document.getElementById("shelves").scrollIntoView({behavior:"smooth"})}
-  if(e.target.closest("#home-link")){e.preventDefault();closeReader();window.scrollTo({top:0})}
+  const o=e.target.closest("[data-open]"); if(o){openReader(o.dataset.open);return}
+  const g=e.target.closest("[data-go]"); if(g){document.getElementById("q").value=""; if(!document.getElementById("reader").hidden){document.getElementById("reader").hidden=true;openId=null} location.hash=g.dataset.go; return}
 });
 document.getElementById("r-close").onclick=closeReader;
+document.getElementById("r-listen").onclick=()=>{if(player.id!==openId) loadTrack(openId); play()};
+document.getElementById("p-play").onclick=()=>player.playing?pause():play();
+document.getElementById("p-stop").onclick=stop;
+document.getElementById("p-back").onclick=()=>jump(-1);
+document.getElementById("p-fwd").onclick=()=>jump(1);
+document.getElementById("p-range").oninput=e=>{player.i=+e.target.value; updateProg(); if(player.playing) speak()};
+document.getElementById("p-heart").onclick=e=>{if(!player.id)return; let s=store.get("shine-saved",[]); s=s.includes(player.id)?s.filter(x=>x!==player.id):[player.id,...s]; store.set("shine-saved",s); e.currentTarget.setAttribute("aria-pressed",s.includes(player.id)); if(current==="saved"&&document.getElementById("reader").hidden) go("saved")};
+document.getElementById("today-btn").onclick=()=>openReader(today().id);
+document.getElementById("surprise").onclick=()=>openReader(TEXTS[Math.floor(Math.random()*TEXTS.length)].id);
+document.getElementById("q").addEventListener("input",()=>go(current));
+document.getElementById("r-copy").onclick=async e=>{const el=document.getElementById("r-cite");try{await navigator.clipboard.writeText(el.innerText);e.target.textContent="Copied"}catch(err){const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r);e.target.textContent="Selected, press Ctrl/Cmd+C"}setTimeout(()=>e.target.textContent="Copy citation",2200)};
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!document.getElementById("reader").hidden)closeReader()});
-document.getElementById("q").addEventListener("input",e=>renderShelves(e.target.value));
-document.getElementById("r-copy").onclick=async e=>{
-  const t=byId(location.hash.slice(1))||byId(document.querySelector("#r-next [data-id]")?.dataset.id); const txt=document.getElementById("r-cite").innerText;
-  try{await navigator.clipboard.writeText(txt);e.target.textContent="Copied"}catch(err){const r=document.createRange();r.selectNodeContents(document.getElementById("r-cite"));const s=getSelection();s.removeAllRanges();s.addRange(r);e.target.textContent="Selected — press Ctrl/Cmd+C"}
-  setTimeout(()=>e.target.textContent="Copy citation",2200);
-};
-window.addEventListener("hashchange",()=>{const id=location.hash.slice(1); if(byId(id)) openReader(id,false); else if(!document.getElementById("reader").hidden) closeReader()});
-renderHero(); renderShelves();
-if(byId(location.hash.slice(1))) openReader(location.hash.slice(1),false);
+function route(){const h=location.hash.slice(1); if(byId(h)){if(!SHELVES.some(s=>s.id===current))go(current); openReader(h,false)} else {document.getElementById("reader").hidden=true; openId=null; go(SHELVES.some(s=>s.id===h)||h==="saved"?h:"home")}}
+window.addEventListener("hashchange",route);
+const setPH=()=>document.documentElement.style.setProperty("--player-h",document.getElementById("player").offsetHeight+"px"); window.addEventListener("resize",setPH);
+if(synth&&synth.onvoiceschanged!==undefined) synth.onvoiceschanged=()=>{};
+document.getElementById("p-disc").innerHTML=art(today(),200);
+route(); setPH();
 </script>
