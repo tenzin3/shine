@@ -1,149 +1,185 @@
-# Shine — Source Data Overview
+# Shine
 
 [Open Shine](https://tenzin3.github.io/shine/web/)
 
 *Tibetan wisdom for everyday life.*
 
-## Lesson artwork
+Shine is a free, static website with 29 teachings from Lotsawa House, grouped
+into nine collections. It runs on GitHub Pages without a server application,
+account, or API key.
 
-All 29 lessons have individual, locally stored photographs in `web/images/`,
-selected to reflect each teaching with the peaceful nature photography of Calm
-as a visual reference. Source pages, descriptions, and license links are saved
-in `web/images/credits.json`. The curated selection is in
-`tools/lesson_photos.json`.
+## Features
 
-To restore missing photographs, run `python3 tools/download_lesson_photos.py`
-(requires internet access), then `python3 tools/build_web.py`. The build uses
-local images in `web/index.html` and embeds them in `web/shine_artifact.html`
-for a portable, offline copy.
+- Browse collections, search the full texts, or open today's teaching.
+- Describe what's on your mind to receive up to three lesson suggestions, with
+  summaries and matched words. Crisis-related messages show the existing help
+  resources instead of recommendations.
+- Read the original lesson text, follow its source, and copy its citation.
+- Listen to saved AI narration, pause and resume, seek through a recording, or
+  jump between spoken paragraphs while the reader highlights the current one.
+- Add gentle ambient music, control its volume, and save your music preferences.
+- Save favourite lessons and revisit recently opened teachings.
+- Use the responsive phone layout, including swipeable navigation at the bottom.
 
-## Recorded narration
+## Run locally
 
-Lessons play saved MP3 recordings from `web/audio/` using Sonia's neural voice,
-with a slightly slower reading pace. These are AI-generated readings of the
-credited translations. The player uses real audio timestamps for seeking,
-pause/resume, and paragraph highlighting, alongside the optional ambient music.
-It does not use browser speech synthesis.
+The built site and all photographs and recordings are committed to the repository.
+To preview it, run this from the project folder:
 
-To regenerate recordings, install `edge-tts==7.3.1` in a Python virtual
-environment and install FFmpeg, then run `python tools/generate_narration.py`
-followed by `python tools/build_web.py`. Generation uses Microsoft's online
-text-to-speech service through [edge-tts](https://github.com/rany2/edge-tts).
-Completed recordings are reused; no credentials are needed by the website.
-`web/audio/manifest.json` records the voice, text checksums, durations, and
-paragraph timestamps.
+```sh
+python3 -m http.server 8000
+```
 
-Publish the entire `web/` folder, including `audio/`, to GitHub Pages. Both HTML
-versions reference these local audio files; keep `audio/` alongside the HTML
-when copying the site for offline use.
+Open [localhost:8000/web/](http://localhost:8000/web/).
 
-## "What's on your mind?"
+Reading and saved media work offline when the files are available locally.
+The site also uses Google Fonts and the free Datamuse service; fonts fall back
+to installed fonts, and recommendations still use local keywords if Datamuse
+is unavailable. Favourite lessons, recent history, and music settings are saved
+in the browser's local storage.
 
-On the Home screen, people write a few words about what they're going through,
-and Shine suggests 1–3 lessons, each with a short description and the words it
-matched on. It's free and runs entirely in the browser, so it works on GitHub Pages:
+## Project structure
 
-- Each lesson and collection has hand-written keywords in `tools/lesson_summaries.json`
-  and `tools/match_words.json`. Add entries there for every new lesson, then run
-  `python3 tools/build_web.py`.
-- Related words come from the free [Datamuse API](https://www.datamuse.com/api/)
-  (no key; only single words are sent), so "furious" also finds lessons about anger.
-  If Datamuse can't be reached, keyword matching still works.
-- Messages that suggest a crisis show helplines (Tele-MANAS 14416, 988,
-  findahelpline.com) instead of lessons.
+| Path | Purpose |
+| --- | --- |
+| `src/template.html` | Page markup and build placeholders |
+| `src/styles.css` | Desktop, phone, and landscape layouts |
+| `src/js/` | Application code, split into matching, catalog, views, discovery, reader, player, music, and startup files |
+| `tools/lessons.py` | Shared source loading, paragraph cleaning, stable lesson IDs, and text fingerprints |
+| `tools/build_web.py` | Validates content and produces both HTML versions |
+| `tools/lesson_summaries.json` | Recommendation summaries and lesson keywords |
+| `tools/match_words.json` | Collection keywords |
+| `tools/lesson_photos.json` | Curated photograph source pages and themes |
+| `data/lotsawa/` | Original source download, manifest, individual text copies, and attribution records |
+| `web/` | Generated pages and the media needed for publication |
+| `tests/` | Content, build, navigation, matching, and playback regression checks |
+| `docs/source-research.md` | Historical source research from the initial prototype |
 
-Before downloading anything, this file maps out what is available in our main
-source, **Lotsawa House**, and how it fits the Shine app.
-Figures checked on lotsawahouse.org on **2 Nov 2026**.
+Edit the source files and rebuild; changes made directly to the generated HTML
+will be overwritten. The build combines the JavaScript files in an explicit
+order and inlines both code and styles, so no npm installation or bundler is
+needed. The source JavaScript files share one script scope.
 
----
+## Build and check
 
-## 1. Lotsawa House at a glance
+Use Python 3.10 or newer. The normal build uses only Python's standard library.
 
-| | |
-|---|---|
-| Website | https://www.lotsawahouse.org |
-| Total size | **6,000+ texts** (all languages combined) |
-| Languages | 9 — English, Tibetan, German, Spanish, French, Italian, Dutch, Portuguese, Chinese |
-| Formats | Web pages, plus EPUB and PDF downloads (per text and per topic collection) |
-| License | **CC BY-NC 4.0** — free to copy and adapt *with attribution*, *non-commercial only* |
-| Text length | Mostly **short**: prayers, verses of advice, mind-training texts (often 1–5 pages) |
-| Watch out for | Texts marked **"Restricted"** — tantric practices meant only for people who have received the empowerment. **Do not use these in Shine.** |
+```sh
+python3 tools/build_web.py
+python3 tools/build_web.py --check
+python3 -m unittest discover -s tests
+```
 
-### How the library is organised
-- **Words of the Buddha** — sūtras and quotations from the Kangyur
-- **Indian Masters** — Atiśa, Nāgārjuna, Śāntideva, etc.
-- **Tibetan Masters** — Patrul Rinpoche, Longchenpa, Mipham, Jamyang Khyentse, Dilgo Khyentse, Tokme Zangpo, etc.
-- **Topics** — hundreds of topic tags (one text can belong to several topics)
+If Node.js 18 or newer is available, also run the application checks:
 
----
+```sh
+node --test tests/app.test.cjs
+```
 
-## 2. Kinds of content
+The build validates lesson summaries, recording fingerprints, and paragraph
+mappings. `--check` verifies that both generated pages match their source without
+rewriting them. The JavaScript checks cover navigation, search, saved lessons,
+the reader, playback, music settings, and offline recommendations using a
+simulated browser environment; they do not replace testing on an actual phone.
 
-| Type | What it is | Useful for Shine? |
-|---|---|---|
-| Advice | Short practical counsel from masters to students | ✅ Core material |
-| Mind Training (Lojong) | Practical methods for compassion and transforming difficulties | ✅ Core material |
-| Meditation instructions | Calm abiding (śamatha), insight, mindfulness | ✅ Core material |
-| Aspiration prayers | Short verses of wishes for oneself and others | ✅ Good for session endings |
-| Songs & poems | Spiritual songs, e.g. on impermanence | ✅ Good for reflections |
-| Quotations | Popular verses from classic texts | ✅ Daily quote cards |
-| Commentaries | Explanations of root texts | ⚠️ Background reading |
-| Sādhanas / rituals | Deity practices, mantras, rituals | ❌ Mostly restricted — avoid |
-| Biography / history / notes | Lives of masters, lineage history | ❌ Not for sessions |
+Two pages are generated:
 
----
+- `web/index.html` references the photographs and audio in adjacent folders.
+- `web/shine_artifact.html` embeds the photographs. It still needs the `audio/`
+  folder beside it for narration; it is not a fully self-contained audio export.
 
-## 3. English texts in topics most relevant to Shine
+## Update lessons and recommendations
 
-| Topic | English texts | Notes |
-|---|---:|---|
-| Advice | **235** | Largest pool; varies from beginner to very advanced (Dzogchen) |
-| Meditation | **25** | Includes calm abiding (śamatha) instructions |
-| Dying & the Bardos | **21** | Death, loss, preparing for death |
-| Sickness & Healing | **20** | Many are restricted sādhanas; a few advice texts are usable |
-| Bodhicitta | **17** | Compassion, refuge, the Four Immeasurables |
-| Mind Training (Lojong) | **14** | Plus sub-collections: Seven Points of Mind Training (6), Parting from the Four Attachments (7) |
-| Impermanence | **8** | Short, powerful reflections |
-| Mindfulness | **5** | Short texts on mindfulness and vigilance |
+The source download is `data/lotsawa/raw/lotsawa_texts_2026-11-02.json`.
+Keep its existing order: IDs such as `LH001` are assigned by position and are
+used by saved favourites, images, recordings, and recommendation metadata.
+Append new lessons rather than reordering existing ones.
 
-> Counts overlap — one text can appear under several topics.
+When adding or changing a lesson:
 
----
+1. Update the source data and its attribution records.
+2. Add or update its exact title, summary, and keywords in
+   `tools/lesson_summaries.json`; collection keywords live in `tools/match_words.json`.
+3. Add a corresponding photograph and its source credit.
+4. Generate or regenerate its narration if its paragraphs changed.
+5. Rebuild and run the checks above.
 
-## 4. Draft mapping: life difficulty → starter texts
+Recommendations combine local keywords with related words from
+[Datamuse](https://www.datamuse.com/api/). Up to eight individual words are looked
+up for a request; the full message is not sent to Datamuse or stored in local
+storage. It remains in page memory while the site is open. Related-word lookups
+are cached in page memory and fall back to local matching on failure.
 
-| Shine playlist | Example Lotsawa House texts |
-|---|---|
-| Restless mind / can't focus | *How to Cultivate Concentration* (Mipham) · *The Importance of Mindfulness and Vigilance* (Mipham) · *A Clear and Concise Description of the Practice of Śamatha* (Khenpo Pema Vajra) |
-| Hard times & suffering | *Turning Suffering & Happiness into Enlightenment* (Dodrupchen) · *How to Transform Sickness and Other Circumstances* (Tokme Zangpo) |
-| Anger & difficult people | *Eight Verses of Training the Mind* (Langri Thangpa) · *The Thirty-Seven Practices of All the Bodhisattvas* (Tokme Zangpo) |
-| Compassion & kindness | *Commentary on the Four Immeasurables* (Buddhagupta) · *Aspiration to Generate Bodhicitta* (Patrul Rinpoche) |
-| Change, loss & impermanence | *Verses of Advice for Meditating on Impermanence* (Könchok Tenpe Drönme) · *When Flowers Were Ravaged by the Frost* (Jamyang Khyentse Chökyi Lodrö) |
-| Grief & death | *A Brief Introduction to the Bardos* (Patrul Rinpoche) · *Advice for a Dying Practitioner* (Dodrupchen) |
-| Missing family | *Advice on Remembering One's Parents* (Khyenrab Chökyi Özer) |
-| Simplicity & what matters | *Thirty Pieces of Heart Advice* (Longchenpa) · *Advice on Abandoning the Eight Worldly Concerns* (Nyala Pema Dündul) |
-| Beginners | *Advice for Beginners* (Mipham) · *Advice for Beginners: How to Overcome Obstacles to Meditation* (Adzom Gyalse) |
+## Maintain media
 
-Target for the hackathon demo: **20–40 texts across 8–10 playlists.**
+All existing media can be used without generating or downloading it again.
 
----
+### Photographs
 
-## 5. Secondary source: 84000
+The 29 curated Pexels photographs are stored in `web/images/`. Source pages,
+descriptions, and license links are recorded in `web/images/credits.json`.
+To restore missing photographs on macOS, with `curl` and `sips` available:
 
-| | |
-|---|---|
-| Website | https://84000.co |
-| Content | English translations of the Kangyur (words of the Buddha) and Tengyur (commentaries) |
-| Size | Kangyur = 1,169 texts / ~70,000 pages, about 50% published; Tengyur ≈ 1% published |
-| License | Translations: **CC BY-NC-ND** (no adaptations allowed). Glossary & translation memory: **CC BY 4.0** |
-| Use in Shine | Glossary only (accurate Buddhist terms in English/Tibetan). Long sūtras are not suited to short sessions. |
+```sh
+python3 tools/download_lesson_photos.py
+python3 tools/build_web.py
+```
 
----
+Existing image files are preserved. Update `tools/lesson_photos.json` when
+changing the curated selection.
 
-## 6. Rules for using the data
+### Narration
 
-1. Credit every session: *"Based on [Title], by [Author], tr. [Translator], Lotsawa House, CC BY-NC 4.0."*
-2. Never use texts marked **Restricted**.
-3. Keep Shine **free / non-commercial** while using Lotsawa House content. Before charging money, get permission from translators or replace with our own content.
-4. Present content as **Buddhist practice and reflection**, not medical or mental-health advice.
+Recordings use Sonia's neural voice at a slightly slower pace. They read the
+English translation; Tibetan text, phonetic lines, and reference notes remain
+available in the reader. Recordings are labelled as AI narration.
+
+Only audio generation needs extra dependencies: FFmpeg and FFprobe on your
+command path, plus the optional Python requirements:
+
+```sh
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements-narration.txt
+python tools/generate_narration.py --only LH001
+python tools/build_web.py
+```
+
+Omit `--only LH001` to process all lessons. `--concurrency 4` limits simultaneous
+requests. Generation sends the public lesson text to Microsoft's online speech
+service through [edge-tts](https://github.com/rany2/edge-tts); it requires internet
+access. The shipped website plays the saved MP3s without contacting that service.
+
+Matching recordings are reused. Temporary audio segments are cached in the
+operating system's temporary folder. Each lesson has a metadata sidecar in
+`web/audio/`, and `manifest.json` collects the durations, paragraph timestamps,
+voice settings, and text fingerprints used by the player. Keep the MP3s, sidecars,
+and manifest together. The generator reads the original lesson data directly,
+so it can regenerate changed text before the next build.
+
+If the build reports outdated narration, regenerate the affected lesson and
+rebuild. If a recording cannot load, confirm that the complete `web/audio/`
+folder was copied or published with the HTML.
+
+## Publish with GitHub Pages
+
+For this repository, select **Settings → Pages → Deploy from a branch → main →
+/ (root)**, then save. Commit and push the rebuilt pages and media. The site is
+served at [tenzin3.github.io/shine/web/](https://tenzin3.github.io/shine/web/).
+
+Keep the complete `web/` folder together, including `images/` and `audio/`.
+Publishing the HTML alone will break its media references. Source edits are not
+live until the rebuilt output has been pushed and GitHub Pages has deployed it.
+
+## Sources and permitted use
+
+The teachings are Buddhist practice and reflection, not medical or mental-health
+care. They retain the source and translator attribution supplied by Lotsawa House.
+The current collection uses **CC BY-NC 4.0** material: retain attribution and keep
+its use non-commercial. Do not add restricted practices. Before commercial use,
+obtain the relevant permissions or replace the content.
+
+See [the source and attribution records](data/lotsawa/SOURCES.md),
+[the lesson manifest](data/lotsawa/manifest.csv), and
+[the original research notes](docs/source-research.md) for provenance and context.
+Photograph licenses and credits are recorded separately with the images.

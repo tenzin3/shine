@@ -18,8 +18,9 @@ import unicodedata
 
 import edge_tts
 
-ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / 'web' / 'audio'
+from lessons import WEB_DIR, load_lessons, paragraph_digest
+
+OUT = WEB_DIR / 'audio'
 CACHE = Path(tempfile.gettempdir()) / 'shine-narration-segments'
 VOICE = 'en-GB-SoniaNeural'
 RATE = '-8%'
@@ -27,10 +28,6 @@ RATE = '-8%'
 
 def normalize(text):
     return ''.join(c for c in unicodedata.normalize('NFKC', html.unescape(text)).casefold() if c.isalnum())
-
-
-def digest(paras):
-    return hashlib.sha256(json.dumps(paras, ensure_ascii=False).encode()).hexdigest()
 
 
 def duration(path):
@@ -56,7 +53,7 @@ def english_paragraphs(paras):
 
 
 async def segment(paras, semaphore):
-    signature = hashlib.sha256((digest(paras) + VOICE + RATE).encode()).hexdigest()
+    signature = hashlib.sha256((paragraph_digest(paras) + VOICE + RATE).encode()).hexdigest()
     mp3, sidecar = CACHE / f'{signature}.mp3', CACHE / f'{signature}.json'
     if mp3.exists() and sidecar.exists():
         return mp3, json.loads(sidecar.read_text())
@@ -112,7 +109,7 @@ async def segment(paras, semaphore):
 async def generate(lesson, semaphore):
     identifier = lesson['id']
     mp3, sidecar = OUT / f'{identifier}.mp3', OUT / f'{identifier}.json'
-    signature = digest(lesson['paras'])
+    signature = paragraph_digest(lesson['paras'])
     indices = english_paragraphs(lesson['paras'])
     if mp3.exists() and sidecar.exists():
         old = json.loads(sidecar.read_text())
@@ -158,8 +155,7 @@ async def main():
     args = parser.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
     CACHE.mkdir(parents=True, exist_ok=True)
-    page = (ROOT / 'web' / 'index.html').read_text()
-    lessons = json.loads(re.search(r'const TEXTS = (.*?);\nconst IMG', page, re.S).group(1))
+    lessons = load_lessons()
     if args.only:
         lessons = [t for t in lessons if t['id'] in args.only]
     semaphore = asyncio.Semaphore(max(1, args.concurrency))

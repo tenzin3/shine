@@ -1,82 +1,115 @@
-"""Build shine/web/index.html from data/lotsawa/raw/*.json.
-Run from the shine folder:  python3 tools/build_web.py
-"""
-import json, re, os, sys, math
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-raw = json.load(open(os.path.join(ROOT, "data/lotsawa/raw/lotsawa_texts_2026-11-02.json")))
+"""Build the two static HTML versions. No third-party packages are required."""
 
-def clean(o):
-    lines = [l.strip() for l in o["body"].split("\n")]
-    # drop repeated title / byline at the top
-    while lines and (not lines[0] or lines[0] == o["title"] or lines[0].lower().startswith("by ") or lines[0].startswith("revealed by") or lines[0].startswith("attributed to")):
-        lines.pop(0)
-    out = []
-    for l in lines:
-        if re.match(r"^(Bibliography|Tibetan Edition|Secondary Sources|Further Reading)$", l): break
-        if l.startswith("|") or l.startswith("Version:"): continue
-        out.append(l)
-    text = "\n".join(out)
-    paras = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
-    return paras
-
-items = []
-for i, o in enumerate(raw, 1):
-    paras = clean(o)
-    words = sum(len(p.split()) for p in paras)
-    pl = o["playlist"]
-    if pl in ("missing-family", "relationships-friends"): pl = "family-friends"
-    items.append({
-        "id": f"LH{i:03d}", "title": o["title"], "author": o["author"], "playlist": pl,
-        "credit": o["credit"], "url": o["url"], "version": o["version"], "retrieved": o["retrieved"],
-        "minutes": max(1, math.ceil(words / 180)), "paras": paras,
-    })
-
+import argparse
 import base64
-tpl = open(os.path.join(ROOT, "tools/template.html")).read()
-img_dir = os.path.join(ROOT, "web/images")
-local_img, embed_img = {}, {}
-for it in items:
-    f = os.path.join(img_dir, it["id"] + ".jpg")
-    if os.path.exists(f):
-        local_img[it["id"]] = "images/" + it["id"] + ".jpg"
-        embed_img[it["id"]] = "data:image/jpeg;base64," + base64.b64encode(open(f, "rb").read()).decode()
-print(len(local_img), "lesson images found")
-audio_manifest = os.path.join(ROOT, 'web/audio/manifest.json')
-audio = json.load(open(audio_manifest)) if os.path.exists(audio_manifest) else {}
-import hashlib
-for it in items:
-    recording = audio.get(it['id'])
-    if recording:
-        signature = hashlib.sha256(json.dumps(it['paras'], ensure_ascii=False).encode()).hexdigest()
-        if recording['text_sha256'] != signature or not os.path.exists(os.path.join(ROOT, 'web', recording['src'])):
-            raise ValueError('Missing or outdated narration: ' + it['id'])
-        times = recording['paragraphs']
-        indices = recording.get('paragraph_indices', list(range(len(it['paras']))))
-        if len(times) != len(indices) or indices != sorted(set(indices)) or not indices or indices[0] < 0 or indices[-1] >= len(it['paras']) or times != sorted(times) or times[0] != 0 or times[-1] > recording['duration']:
-            raise ValueError('Invalid paragraph timestamps: ' + it['id'])
-        it['minutes'] = max(1, math.ceil(recording['duration'] / 60))
-# --- "What's on your mind?" matching data --------------------------------------
-# Free, runs in the browser: keywords for each lesson and collection, plus related
-# words from the Datamuse API. Messages matching CRISIS_PATTERNS show helplines.
+import json
+import math
+
+from lessons import ROOT, WEB_DIR, load_json, load_lessons, paragraph_digest
+
+SOURCE_DIR = ROOT / 'src'
+SCRIPT_FILES = (
+    'data.js', 'matching.js', 'catalog.js', 'views.js', 'discovery.js',
+    'reader.js', 'player.js', 'music.js', 'app.js',
+)
 CRISIS_PATTERNS = [
-    "suicid", "kill(ing)? myself", "end(ing)? (it all|my life)", "want(ed)? to die", "wish i (was|were) dead",
-    "better off dead", "self[- ]?harm", "hurt(ing)? myself", "cut(ting)? myself", "(do not|don't|dont) want to (live|be alive)",
-    "no reason to live", "take my (own )?life", "overdose",
+    'suicid', 'kill(ing)? myself', 'end(ing)? (it all|my life)',
+    'want(ed)? to die', 'wish i (was|were) dead', 'better off dead',
+    'self[- ]?harm', 'hurt(ing)? myself', 'cut(ting)? myself',
+    "(do not|don't|dont) want to (live|be alive)", 'no reason to live',
+    'take my (own )?life', 'overdose',
 ]
-summaries = json.load(open(os.path.join(ROOT, "tools/lesson_summaries.json")))
-match_words = json.load(open(os.path.join(ROOT, "tools/match_words.json")))["collections"]
-lesson_info = {}
-for it in items:
-    s_ = summaries.get(it["id"])
-    if not s_ or s_["title"] != it["title"]:
-        raise ValueError("Add or update the summary and keywords in tools/lesson_summaries.json for " + it["id"] + " (" + it["title"] + ")")
-    lesson_info[it["id"]] = {"summary": s_["summary"], "keywords": s_.get("keywords", [])}
-match_data = {"lessons": lesson_info, "collections": match_words}
-base = tpl.replace("/*__DATA__*/[]", json.dumps(items, ensure_ascii=False)).replace('/*__AUDIO__*/{}', json.dumps(audio)).replace('/*__MATCH_DATA__*/{}', json.dumps(match_data, ensure_ascii=False)).replace('/*__CRISIS__*/[]', json.dumps(CRISIS_PATTERNS))
-print(len(audio), 'lesson recordings found')
-page_local = base.replace("/*__IMG__*/{}", json.dumps(local_img))
-page = base.replace("/*__IMG__*/{}", json.dumps(embed_img))
-os.makedirs(os.path.join(ROOT, "web"), exist_ok=True)
-open(os.path.join(ROOT, "web/index.html"), "w").write("<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\"></head><body>\n" + page_local + "\n</body></html>\n")
-open(os.path.join(ROOT, "web/shine_artifact.html"), "w").write(page)
-print(len(items), "texts built into web/index.html")
+
+
+def lesson_images(lessons):
+    local, embedded = {}, {}
+    for lesson in lessons:
+        relative = f"images/{lesson['id']}.jpg"
+        image = WEB_DIR / relative
+        if image.exists():
+            local[lesson['id']] = relative
+            embedded[lesson['id']] = 'data:image/jpeg;base64,' + base64.b64encode(image.read_bytes()).decode()
+    return local, embedded
+
+
+def validate_recording(lesson, recording):
+    identifier = lesson['id']
+    if recording['text_sha256'] != paragraph_digest(lesson['paras']) or not (WEB_DIR / recording['src']).is_file():
+        raise ValueError(f'Missing or outdated narration: {identifier}. Run tools/generate_narration.py first.')
+    times = recording['paragraphs']
+    indices = recording.get('paragraph_indices', list(range(len(lesson['paras']))))
+    if (
+        not indices or len(times) != len(indices)
+        or indices != sorted(set(indices))
+        or indices[0] < 0 or indices[-1] >= len(lesson['paras'])
+        or times != sorted(times) or times[0] != 0
+        or times[-1] > recording['duration']
+    ):
+        raise ValueError(f'Invalid paragraph timestamps: {identifier}')
+
+
+def lesson_recordings(lessons):
+    manifest = WEB_DIR / 'audio/manifest.json'
+    recordings = load_json(manifest) if manifest.exists() else {}
+    for lesson in lessons:
+        recording = recordings.get(lesson['id'])
+        if recording:
+            validate_recording(lesson, recording)
+            lesson['minutes'] = max(1, math.ceil(recording['duration'] / 60))
+    return recordings
+
+
+def matching_data(lessons):
+    summaries = load_json(ROOT / 'tools/lesson_summaries.json')
+    collections = load_json(ROOT / 'tools/match_words.json')['collections']
+    info = {}
+    for lesson in lessons:
+        summary = summaries.get(lesson['id'])
+        if not summary or summary['title'] != lesson['title']:
+            raise ValueError(f"Update tools/lesson_summaries.json for {lesson['id']} ({lesson['title']})")
+        info[lesson['id']] = {'summary': summary['summary'], 'keywords': summary.get('keywords', [])}
+    return {'lessons': info, 'collections': collections}
+
+
+def render_pages():
+    lessons = load_lessons()
+    local_images, embedded_images = lesson_images(lessons)
+    recordings = lesson_recordings(lessons)
+    template = (SOURCE_DIR / 'template.html').read_text(encoding='utf-8')
+    styles = (SOURCE_DIR / 'styles.css').read_text(encoding='utf-8')
+    scripts = '\n'.join((SOURCE_DIR / 'js' / name).read_text(encoding='utf-8') for name in SCRIPT_FILES)
+    page = template.replace('/*__STYLES__*/', styles.rstrip()).replace('/*__SCRIPTS__*/', scripts.rstrip())
+    for placeholder, data in (
+        ('/*__DATA__*/[]', lessons), ('/*__AUDIO__*/{}', recordings),
+        ('/*__MATCH_DATA__*/{}', matching_data(lessons)), ('/*__CRISIS__*/[]', CRISIS_PATTERNS),
+    ):
+        page = page.replace(placeholder, json.dumps(data, ensure_ascii=placeholder == '/*__AUDIO__*/{}'))
+    local = page.replace('/*__IMG__*/{}', json.dumps(local_images))
+    embedded = page.replace('/*__IMG__*/{}', json.dumps(embedded_images))
+    document = (
+        '<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'
+        '</head><body>\n' + local + '\n</body></html>\n'
+    )
+    return {'index.html': document, 'shine_artifact.html': embedded}
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--check', action='store_true', help='Verify generated HTML is current without writing files')
+    args = parser.parse_args()
+    pages = render_pages()
+    if args.check:
+        stale = [name for name, content in pages.items() if not (WEB_DIR / name).exists() or (WEB_DIR / name).read_text(encoding='utf-8') != content]
+        if stale:
+            raise SystemExit('Rebuild stale pages with python3 tools/build_web.py: ' + ', '.join(stale))
+        print('Both generated pages are current.')
+        return
+    WEB_DIR.mkdir(exist_ok=True)
+    for name, content in pages.items():
+        (WEB_DIR / name).write_text(content, encoding='utf-8')
+    print('Built web/index.html and web/shine_artifact.html')
+
+
+if __name__ == '__main__':
+    main()
