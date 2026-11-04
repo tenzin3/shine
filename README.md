@@ -37,6 +37,21 @@ Publish the entire `web/` folder, including `audio/`, to GitHub Pages. Both HTML
 versions reference these local audio files; keep `audio/` alongside the HTML
 when copying the site for offline use.
 
+## "What's on your mind?"
+
+On the Home screen, people write a few words about what they're going through,
+and Shine suggests 1–3 lessons, each with a short description and the words it
+matched on. It's free and runs entirely in the browser, so it works on GitHub Pages:
+
+- Each lesson and collection has hand-written keywords in `tools/lesson_summaries.json`
+  and `tools/match_words.json`. Add entries there for every new lesson, then run
+  `python3 tools/build_web.py`.
+- Related words come from the free [Datamuse API](https://www.datamuse.com/api/)
+  (no key; only single words are sent), so "furious" also finds lessons about anger.
+  If Datamuse can't be reached, keyword matching still works.
+- Messages that suggest a crisis show helplines (Tele-MANAS 14416, 988,
+  findahelpline.com) instead of lessons.
+
 Before downloading anything, this file maps out what is available in our main
 source, **Lotsawa House**, and how it fits the Shine app.
 Figures checked on lotsawahouse.org on **2 Nov 2026**.

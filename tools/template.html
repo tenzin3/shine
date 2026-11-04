@@ -135,6 +135,37 @@ h1.coll{font-weight:600;font-size:clamp(1.6rem,3vw,2.2rem);margin:0 0 8px;text-w
 .music-volume input{width:100%;height:30px;margin:0;accent-color:var(--accent)}
 .music-panel .music-close{float:right;width:44px;padding:0;margin:-8px -8px 0 0;font-size:1.3rem}
 
+/* "What's on your mind?" (free word matching) */
+.mind{margin:0 0 6px;padding:clamp(18px,3vw,28px);border-radius:22px;background:linear-gradient(135deg,rgba(255,255,255,.14),rgba(255,255,255,.05));border:1px solid rgba(255,255,255,.2);display:grid;gap:14px;max-width:1100px}
+.mind-head{display:flex;align-items:center;justify-content:space-between;gap:10px 14px;flex-wrap:wrap}
+.mind h2{margin:0;font-size:1.4rem;font-weight:600}
+.spark-badge{display:inline-flex;align-items:center;gap:6px;font-size:.74rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#d6eaff;background:rgba(74,163,255,.2);border-radius:999px;padding:5px 12px}
+.mind-form{display:grid;gap:12px}
+.mind textarea{width:100%;min-height:86px;resize:vertical;border-radius:14px;border:1px solid rgba(255,255,255,.24);background:rgba(5,15,45,.35);color:#fff;font:inherit;font-size:1.02rem;line-height:1.5;padding:14px 16px}
+.mind textarea::placeholder{color:var(--soft)}
+.mind textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
+.mind-actions{display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap}
+.chip{border:1px solid rgba(255,255,255,.28);border-radius:999px;padding:7px 14px;font-size:.88rem;color:#fff;background:rgba(255,255,255,.06);min-height:36px}
+.chip:hover{background:rgba(255,255,255,.15)}
+.find{margin-left:auto;background:#fff;color:#16305c;font-weight:700;border-radius:999px;padding:11px 24px;min-height:44px}
+.find[disabled]{opacity:.65;cursor:progress}
+.mind-note{margin:0;color:var(--soft);font-size:.8rem;line-height:1.5}
+.mind-out:empty{display:none}
+.mind-out{display:grid;gap:16px;padding-top:4px}
+.reflect{margin:0;font-family:var(--read);font-style:italic;font-size:1.15rem;line-height:1.5}
+.mind-status{margin:0;color:var(--soft)}
+.picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,230px));gap:26px}
+.pick{display:grid;gap:8px;align-content:start;min-width:0}
+.pick .why{margin:0;color:#ece8ff;font-size:.9rem;line-height:1.45}
+.pick .hits{margin:0;color:var(--soft);font-size:.78rem;letter-spacing:.02em}
+.mind-note a{color:#cfe6ff}
+.crisis{border-radius:16px;background:rgba(255,143,163,.15);border:1px solid rgba(255,143,163,.45);padding:16px 18px;display:grid;gap:10px;line-height:1.5}
+.crisis p{margin:0}
+.crisis ul{margin:0;padding-left:20px;display:grid;gap:4px}
+.crisis a{color:#fff;font-weight:700}
+.dots::after{content:"";animation:dots 1.2s steps(4) infinite}
+@keyframes dots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+
 @media (max-width:900px){
   .app{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto auto}
   .rail{grid-row:3/4;flex-direction:column;overflow:visible;padding:6px 0 calc(6px + env(safe-area-inset-bottom,0px));gap:0;min-width:0;z-index:30;border-top:1px solid var(--faint)}
@@ -193,6 +224,9 @@ h1.coll{font-weight:600;font-size:clamp(1.6rem,3vw,2.2rem);margin:0 0 8px;text-w
   .text{padding:20px 16px;border-radius:16px}
   .text-inner{font-size:1.1rem;overflow-wrap:anywhere}
   .more .row-head h2{overflow-wrap:anywhere}
+  .find{margin-left:0;width:100%}
+  .picks{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 14px}
+  .mind h2{font-size:1.2rem}
 }
 @media (max-height:500px) and (max-width:900px){
   .rail .logo{display:none}
@@ -253,6 +287,64 @@ h1.coll{font-weight:600;font-size:clamp(1.6rem,3vw,2.2rem);margin:0 0 8px;text-w
 const TEXTS = /*__DATA__*/[];
 const IMG = /*__IMG__*/{};
 const AUDIO = /*__AUDIO__*/{};
+/* "What's on your mind?": free matching in the browser. The person's words (plus related words
+   from the Datamuse API) are scored against hand-written keywords for each lesson and collection. */
+const MATCH_DATA = /*__MATCH_DATA__*/{};
+const CRISIS_LIST = /*__CRISIS__*/[];
+const CRISIS_RE = CRISIS_LIST.length ? new RegExp(CRISIS_LIST.join('|'),'i') : null;
+
+/* Free matcher: the person's words (plus related words from Datamuse) are scored against
+   hand-written keywords for each lesson and collection. */
+const STOP=new Set(`about above after again against also always am an and any are as at be because been before being below between both but by can cant could did do does doing dont down during each even ever every feel feeling feels felt few for from further get gets getting got had has have having he her here hers him his how i im ive if in into is it its just keep keeps know like lot lots make me more most much my myself no nor not now of off on once only or other our out over own really same she should so some someone something such than that the their them then there these they thing things this those through to too under until up very was we were what when where which while who why will with would you your yours yourself one back always never still want wants need needs going all last month week year day since everything anything nothing very lately recently today`.split(/\s+/));
+const stem=w=>{w=w.toLowerCase().replace(/[^a-z]/g,'');for(const x of['fulness','iness','ness','ments','ment','ings','ing','edly','ied','ies','ed','ful','ily','ly','es','s','y'])if(w.length-x.length>=4&&w.endsWith(x))return w.slice(0,-x.length);return w};
+const sameStem=(a,b)=>a===b||(a.length>=5&&b.length>=5&&(a.startsWith(b)||b.startsWith(a)));
+const PHRASES=[
+ [/\b(passed away|lost (my|our|her|his|a|someone)|died|funeral|death of)\b/,'death grief'],
+ [/\bmiss(ing)? (my|our|home|family|mom|mum|dad|parents)/,'homesick missing family'],
+ [/\bcan'?t (focus|concentrate|sit still|stop thinking)/,'distracted restless'],
+ [/\bnew to (meditat|buddh)|how (do i|to) (start|begin|meditate)/,'beginner']];
+let VOCAB=null;
+function vocab(){
+  if(VOCAB)return VOCAB; VOCAB={};
+  for(const t of TEXTS){
+    const v=new Map(),info=(MATCH_DATA.lessons||{})[t.id]||{};
+    const add=(text,w)=>{for(const word of String(text).toLowerCase().split(/[^a-z]+/)){if(word.length<3||STOP.has(word))continue;const k=stem(word);if((v.get(k)?.w||0)<w)v.set(k,{w,word})}};
+    add(t.title+' '+(info.summary||''),1);
+    add(((MATCH_DATA.collections||{})[t.playlist]||[]).join(' '),2);
+    add((info.keywords||[]).join(' '),3);
+    VOCAB[t.id]=v;
+  }
+  return VOCAB;
+}
+const dmCache=new Map();
+function related(word){
+  if(!dmCache.has(word))dmCache.set(word,(async()=>{
+    const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),5000);
+    try{const r=await fetch('https://api.datamuse.com/words?ml='+encodeURIComponent(word)+'&max=20',{signal:ctl.signal});return r.ok?(await r.json()).map(x=>x.word):null}
+    catch(e){return null}finally{clearTimeout(timer)}
+  })());
+  return dmCache.get(word);
+}
+async function localMatch(text){
+  const low=text.toLowerCase().replace(/\ball the time\b/g,' ');
+  const words=[...new Set(low.replace(/['’]/g,'').split(/[^a-z]+/).filter(w=>w.length>=3&&!STOP.has(w)))].slice(0,10);
+  const terms=new Map();
+  const put=(word,w,from)=>{if(word.length<3||STOP.has(word))return;const k=stem(word);const cur=terms.get(k);if(!cur||cur.w<w)terms.set(k,{w,from})};
+  words.forEach(w=>put(w,1,w));
+  for(const [re,extra] of PHRASES){const m=low.match(re);if(m)extra.split(' ').forEach(e=>put(e,1.5,m[0]))}
+  const lists=await Promise.all(words.slice(0,8).map(related));
+  lists.forEach((list,i)=>(list||[]).forEach((rw,rank)=>rw.toLowerCase().split(/[^a-z]+/).forEach(part=>put(part,0.4*(1-rank/25),words[i]))));
+  const V=vocab(),ranked=[];
+  for(const t of TEXTS){
+    let score=0;const hits=new Set();
+    for(const [k,term] of terms){let best=0;for(const [vk,vi] of V[t.id])if(vi.w>best&&sameStem(k,vk))best=vi.w;if(best){score+=term.w*best;hits.add(term.from)}}
+    if(score>=1)ranked.push({t,score,hits:[...hits]});
+  }
+  ranked.sort((a,b)=>b.score-a.score);
+  return {crisis:false,reflection:'',source:'datamuse',online:lists.some(l=>l!==null),
+    picks:ranked.slice(0,3).map(r=>({id:r.t.id,why:((MATCH_DATA.lessons||{})[r.t.id]||{}).summary||'',hits:r.hits.slice(0,4)}))};
+}
+
 const pic=(t,size)=>IMG[t.id]?`<img src="${IMG[t.id]}" alt="" loading="lazy" decoding="async">`:art(t,size);
 const ICONS={
  home:'<path d="M4 11 12 4l8 7"/><path d="M6 10v9h12v-9"/><path d="M10 19v-5h4v5"/>',
@@ -326,6 +418,7 @@ function viewHome(){
   const t=today(), recent=store.get("shine-recent",[]).map(byId).filter(Boolean);
   let h=`<button class="banner" data-open="${t.id}"><span class="badge"><svg viewBox="0 0 24 24"><path d="M12 3c2.5 4 4 6 4 9a4 4 0 0 1-8 0c0-3 1.5-5 4-9z"/></svg></span><span><b>Today’s teaching:</b> ${esc(t.title)} by ${esc(t.author)} · ${t.minutes} min</span><span class="chev">›</span></button>`;
   h+=`<h1 class="coll">Tibetan wisdom for everyday life</h1><p class="intro">Short teachings from Tibetan Buddhist masters, gathered around the difficulties we all meet. Read them, or press play and listen.</p>`;
+  h+=mindPanel();
   if(recent.length) h+=row("Continue","recent",recent);
   for(const s of SHELVES){const list=TEXTS.filter(x=>x.playlist===s.id); if(list.length) h+=row(s.name,s.id,list)}
   return h;
@@ -334,6 +427,54 @@ const row=(name,id,list)=>`<div class="row-head"><h2>${esc(name)}</h2>${id==="re
 function viewShelf(id){const s=shelfOf(id),list=TEXTS.filter(t=>t.playlist===id);return`<h1 class="coll">${esc(s.name)}</h1><p class="intro">${esc(s.line)}</p><div class="grid">${list.map(card).join("")}</div>`}
 function viewSaved(){const list=store.get("shine-saved",[]).map(byId).filter(Boolean);return`<h1 class="coll">Saved</h1><p class="intro">Teachings you marked with the heart in the player.</p>`+(list.length?`<div class="grid">${list.map(card).join("")}</div>`:`<p class="empty">Nothing saved yet. Open a teaching and tap the heart in the player bar.</p>`)}
 function viewSearch(q){const ql=q.toLowerCase(),hits=TEXTS.filter(t=>(t.title+" "+t.author+" "+t.paras.join(" ")).toLowerCase().includes(ql));return`<h1 class="coll">Results for “${esc(q)}”</h1><p class="intro">${hits.length} teaching${hits.length===1?"":"s"}</p>`+(hits.length?`<div class="grid">${hits.map(card).join("")}</div>`:`<p class="empty">Try a feeling like “anger” or a master like “Patrul”.</p>`)}
+
+/* "What's on your mind?" panel */
+const EXAMPLES=["I can’t focus on my studies","I’m angry at someone close to me","I lost someone I love","I miss my family back home"];
+const spark={text:'',status:'idle',result:null,error:''};
+function crisisBox(){
+  return `<div class="crisis" role="alert"><p><b>It sounds like you’re carrying something very heavy right now.</b> You don’t have to face it alone. Please reach out to someone today:</p>
+  <ul><li>India: Tele-MANAS, call <a href="tel:14416">14416</a> (free, 24 hours)</li>
+  <li>United States: call or text <a href="tel:988">988</a></li>
+  <li>Elsewhere: find a helpline at <a href="https://findahelpline.com" target="_blank" rel="noopener">findahelpline.com</a></li>
+  <li>If you are in immediate danger, call your local emergency number (112 in India).</li></ul>
+  <p>Talking with a trusted friend, family member or teacher can help too.</p></div>`;
+}
+function mindPanel(){
+  const r=spark.result; let out='';
+  if(spark.status==='loading') out=`<p class="mind-status" role="status">Finding teachings for you<span class="dots"></span></p>`;
+  else if(spark.status==='error') out=`<p class="mind-status" role="alert">${esc(spark.error)}</p>`;
+  else if(r&&r.crisis) out=crisisBox();
+  else if(r){
+    const picks=(r.picks||[]).map(p=>({t:byId(p.id),why:p.why,hits:p.hits})).filter(p=>p.t);
+    out=(r.reflection?`<p class="reflect">${esc(r.reflection)}</p>`:'')+
+      (picks.length?`<div class="picks">${picks.map(p=>`<div class="pick">${card(p.t)}${p.why?`<p class="why">${esc(p.why)}</p>`:''}${p.hits&&p.hits.length?`<p class="hits">Matched: ${p.hits.map(esc).join(', ')}</p>`:''}</div>`).join('')}</div>`
+        :`<p class="mind-status">No close match this time. <button class="chip" data-go="beginners">Start here</button> is a good place to begin.</p>`);
+  }
+  const badge='Word matching · Datamuse';
+  const note='Shine matches your words to its lessons using keywords and related words from <a href="https://www.datamuse.com/api/" target="_blank" rel="noopener">Datamuse</a>, a free word-finding service. Only single words are looked up, and Shine doesn’t store what you write. Shine is Buddhist practice and reflection, not medical or mental-health care.';
+  return `<section class="mind" aria-labelledby="mind-h"><div class="mind-head"><h2 id="mind-h">What’s on your mind?</h2><span class="spark-badge">${badge}</span></div>
+  <form class="mind-form" id="mind-form"><textarea id="mind-text" maxlength="600" aria-labelledby="mind-h" placeholder="Write a few words, for example: I keep arguing with my brother and feel guilty afterwards.">${esc(spark.text)}</textarea>
+  <div class="mind-actions">${EXAMPLES.map(x=>`<button type="button" class="chip" data-example="${esc(x)}">${esc(x)}</button>`).join('')}<button class="find" type="submit" ${spark.status==='loading'?'disabled':''}>Find teachings</button></div></form>
+  <p class="mind-note">${note}</p>
+  <div class="mind-out" aria-live="polite">${out}</div></section>`;
+}
+function rerenderMind(scroll){
+  const old=document.querySelector('.mind'); if(!old) return;
+  const tmp=document.createElement('div'); tmp.innerHTML=mindPanel(); old.replaceWith(tmp.firstElementChild);
+  if(scroll) document.querySelector('.mind-out')?.scrollIntoView({block:'nearest',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
+}
+async function findTeachings(text){
+  spark.text=text=(text||'').trim();
+  if(text.length<3){spark.status='error';spark.error='Write a few words about what’s on your mind.';return rerenderMind()}
+  if(CRISIS_RE&&CRISIS_RE.test(text)){spark.result={crisis:true,picks:[]};spark.status='done';return rerenderMind(true)}
+  spark.status='loading';spark.result=null;rerenderMind();
+  try{spark.result=await localMatch(text);spark.status='done'}
+  catch(e){spark.status='error';spark.error='Something went wrong while matching. Please try again.'}
+  rerenderMind(true);
+}
+document.addEventListener('submit',e=>{if(e.target.id==='mind-form'){e.preventDefault();findTeachings(document.getElementById('mind-text').value)}});
+document.addEventListener('input',e=>{if(e.target.id==='mind-text')spark.text=e.target.value});
+document.addEventListener('keydown',e=>{if(e.target.id==='mind-text'&&e.key==='Enter'&&(e.metaKey||e.ctrlKey)){e.preventDefault();findTeachings(e.target.value)}});
 
 let current="home";
 function go(id){
@@ -483,6 +624,7 @@ window.addEventListener('pagehide',()=>{pause();if(music.ctx)music.ctx.suspend()
 /* events */
 document.addEventListener("click",e=>{
   if(!e.target.closest('#music-panel, #p-music'))showMusic(false);
+  const ex=e.target.closest("[data-example]"); if(ex){const box=document.getElementById('mind-text'); if(box) box.value=ex.dataset.example; findTeachings(ex.dataset.example); return}
   const o=e.target.closest("[data-open]"); if(o){openReader(o.dataset.open);return}
   const g=e.target.closest("[data-go]"); if(g){document.getElementById("q").value=""; if(!document.getElementById("reader").hidden){document.getElementById("reader").hidden=true;openId=null} location.hash=g.dataset.go; return}
 });

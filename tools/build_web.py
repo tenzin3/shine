@@ -55,7 +55,24 @@ for it in items:
         if len(times) != len(indices) or indices != sorted(set(indices)) or not indices or indices[0] < 0 or indices[-1] >= len(it['paras']) or times != sorted(times) or times[0] != 0 or times[-1] > recording['duration']:
             raise ValueError('Invalid paragraph timestamps: ' + it['id'])
         it['minutes'] = max(1, math.ceil(recording['duration'] / 60))
-base = tpl.replace("/*__DATA__*/[]", json.dumps(items, ensure_ascii=False)).replace('/*__AUDIO__*/{}', json.dumps(audio))
+# --- "What's on your mind?" matching data --------------------------------------
+# Free, runs in the browser: keywords for each lesson and collection, plus related
+# words from the Datamuse API. Messages matching CRISIS_PATTERNS show helplines.
+CRISIS_PATTERNS = [
+    "suicid", "kill(ing)? myself", "end(ing)? (it all|my life)", "want(ed)? to die", "wish i (was|were) dead",
+    "better off dead", "self[- ]?harm", "hurt(ing)? myself", "cut(ting)? myself", "(do not|don't|dont) want to (live|be alive)",
+    "no reason to live", "take my (own )?life", "overdose",
+]
+summaries = json.load(open(os.path.join(ROOT, "tools/lesson_summaries.json")))
+match_words = json.load(open(os.path.join(ROOT, "tools/match_words.json")))["collections"]
+lesson_info = {}
+for it in items:
+    s_ = summaries.get(it["id"])
+    if not s_ or s_["title"] != it["title"]:
+        raise ValueError("Add or update the summary and keywords in tools/lesson_summaries.json for " + it["id"] + " (" + it["title"] + ")")
+    lesson_info[it["id"]] = {"summary": s_["summary"], "keywords": s_.get("keywords", [])}
+match_data = {"lessons": lesson_info, "collections": match_words}
+base = tpl.replace("/*__DATA__*/[]", json.dumps(items, ensure_ascii=False)).replace('/*__AUDIO__*/{}', json.dumps(audio)).replace('/*__MATCH_DATA__*/{}', json.dumps(match_data, ensure_ascii=False)).replace('/*__CRISIS__*/[]', json.dumps(CRISIS_PATTERNS))
 print(len(audio), 'lesson recordings found')
 page_local = base.replace("/*__IMG__*/{}", json.dumps(local_img))
 page = base.replace("/*__IMG__*/{}", json.dumps(embed_img))
